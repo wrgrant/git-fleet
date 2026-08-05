@@ -62,11 +62,21 @@ export function buildWebviewHtml(opts: {
   if (numRepos > 0) {
     body = `<body style="${colorVars}">
 		<div id="controls">
+      <div id="controlFields">
 			<span id="repoControl"><span class="unselectable">${vscode.l10n.t("Repo")}: </span><div id="repoSelect" class="dropdown"></div></span>
 			<span id="branchControl"><span class="unselectable">${vscode.l10n.t("Branch")}: </span><div id="branchSelect" class="dropdown"></div></span>
 			<label id="showRemoteBranchesControl"><input type="checkbox" id="showRemoteBranchesCheckbox" value="1" checked>${vscode.l10n.t("Show Remote Branches")}</label>
-      <div id="refreshBtn" class="roundedBtn">${vscode.l10n.t("Refresh")}</div>
+      </div>
+      <div id="controlActions">
+        <button id="searchBtn" class="iconBtn" title="${vscode.l10n.t("Search commits")}" aria-label="${vscode.l10n.t("Search commits")}">⌕</button>
+        <button id="worktreesBtn" class="iconBtn" title="${vscode.l10n.t("Show or hide worktrees")}" aria-label="${vscode.l10n.t("Show or hide worktrees")}">⑂</button>
+        <button id="terminalBtn" class="iconBtn" title="${vscode.l10n.t("Open terminal in repository")}" aria-label="${vscode.l10n.t("Open terminal in repository")}">&gt;_</button>
+        <button id="fetchBtn" class="iconBtn" title="${vscode.l10n.t("Fetch repository")}" aria-label="${vscode.l10n.t("Fetch repository")}">⇣</button>
+        <button id="settingsBtn" class="iconBtn" title="${vscode.l10n.t("Open Git Fleet settings")}" aria-label="${vscode.l10n.t("Open Git Fleet settings")}">⚙</button>
+        <button id="refreshBtn" class="iconBtn" title="${vscode.l10n.t("Refresh")}" aria-label="${vscode.l10n.t("Refresh")}">↻</button>
+      </div>
 		</div>
+    <div id="commitSearch" hidden><input id="commitSearchInput" type="search" placeholder="${vscode.l10n.t("Search commit messages")}"><span id="commitSearchStatus"></span><button id="commitSearchPrevious" class="iconBtn" title="${vscode.l10n.t("Previous match")}">↑</button><button id="commitSearchNext" class="iconBtn" title="${vscode.l10n.t("Next match")}">↓</button><button id="commitSearchClose" class="iconBtn" title="${vscode.l10n.t("Close search")}">×</button></div>
 		<div id="content">
 			<div id="commitGraph"></div>
 			<div id="commitTable"></div>

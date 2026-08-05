@@ -35,7 +35,8 @@ export type AvatarCache = { [email: string]: Avatar };
 
 export type DateFormat = "Date & Time" | "Date Only" | "Relative";
 export type GraphStyle = "rounded" | "angular";
-export type RepositoryNavigatorMode = "activity" | "dirty" | "tree";
+export type RepositoryNavigatorLayout = "list" | "tree";
+export type RepositoryNavigatorSort = "activity" | "dirty" | "alphabetical";
 
 /* Infrastructure Request / Response Messages */
 
@@ -54,6 +55,20 @@ export type ResponseFetchAvatar = {
 export type RequestSelectRepo = {
   command: "selectRepo";
   repo: string;
+};
+
+export type RequestOpenTerminal = {
+  command: "openTerminal";
+  repo: string;
+};
+
+export type RequestFetchRepository = {
+  command: "fetchRepository";
+  repo: string;
+};
+
+export type RequestOpenSettings = {
+  command: "openSettings";
 };
 
 export type RequestLoadRepos = {
@@ -105,6 +120,9 @@ export type RequestMessage =
   | QueryRequest
   | RequestFetchAvatar
   | RequestSelectRepo
+  | RequestOpenTerminal
+  | RequestFetchRepository
+  | RequestOpenSettings
   | RequestLoadRepos
   | RequestSaveRepoState
   | RequestCopyToClipboard

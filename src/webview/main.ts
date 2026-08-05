@@ -30,6 +30,9 @@ class GitGraphView {
   private worktrees: GitWorktree[] = [];
   private worktreeBaselineRef: string | null = null;
   private activeWorktree: { worktree: GitWorktree; item: HTMLElement } | null = null;
+  private worktreesVisible: boolean = true;
+  private searchMatches: number[] = [];
+  private searchPosition: number = -1;
 
   private graph: Graph;
   private config: Config;
@@ -91,6 +94,25 @@ class GitGraphView {
     document.getElementById("refreshBtn")!.addEventListener("click", () => {
       this.refresh(true);
     });
+    document.getElementById("worktreesBtn")!.addEventListener("click", () => {
+      this.worktreesVisible = !this.worktreesVisible;
+      this.saveState();
+      this.renderWorktrees();
+    });
+    document
+      .getElementById("terminalBtn")!
+      .addEventListener("click", () =>
+        sendMessage({ command: "openTerminal", repo: this.currentRepo })
+      );
+    document
+      .getElementById("fetchBtn")!
+      .addEventListener("click", () =>
+        sendMessage({ command: "fetchRepository", repo: this.currentRepo })
+      );
+    document
+      .getElementById("settingsBtn")!
+      .addEventListener("click", () => sendMessage({ command: "openSettings" }));
+    this.registerSearchControls();
     this.observeWindowSizeChanges();
     this.observeWebviewStyleChanges();
     this.observeWebviewScroll();
@@ -99,6 +121,7 @@ class GitGraphView {
     if (prevState) {
       this.currentBranch = prevState.currentBranch;
       this.showRemoteBranches = prevState.showRemoteBranches;
+      this.worktreesVisible = prevState.worktreesVisible ?? true;
       this.showRemoteBranchesElem.checked = this.showRemoteBranches;
       if (typeof this.gitRepos[prevState.currentRepo] !== "undefined") {
         this.currentRepo = prevState.currentRepo;
@@ -401,7 +424,8 @@ class GitGraphView {
       showRemoteBranches: this.showRemoteBranches,
       expandedCommit: this.expandedCommit,
       worktrees: this.worktrees,
-      worktreeBaselineRef: this.worktreeBaselineRef
+      worktreeBaselineRef: this.worktreeBaselineRef,
+      worktreesVisible: this.worktreesVisible
     });
   }
 
@@ -1110,6 +1134,7 @@ class GitGraphView {
     let windowWidth = window.outerWidth,
       windowHeight = window.outerHeight;
     window.addEventListener("resize", () => {
+      this.updateWorktreeTop();
       if (windowWidth === window.outerWidth && windowHeight === window.outerHeight) {
         this.renderGraph();
       } else {
@@ -1146,7 +1171,10 @@ class GitGraphView {
     const header = document.getElementById("worktreeHeader")!;
     const list = document.getElementById("worktreeList")!;
     this.clearWorktreeConnections();
-    if (this.worktrees.length === 0) {
+    const toggle = document.getElementById("worktreesBtn")!;
+    toggle.classList.toggle("active", this.worktreesVisible && this.worktrees.length > 0);
+    toggle.setAttribute("aria-pressed", String(this.worktreesVisible));
+    if (this.worktrees.length === 0 || !this.worktreesVisible) {
       rail.hidden = true;
       document.body.classList.remove("worktreesVisible");
       header.innerHTML = "";
@@ -1156,6 +1184,7 @@ class GitGraphView {
 
     rail.hidden = false;
     document.body.classList.add("worktreesVisible");
+    this.updateWorktreeTop();
     header.innerHTML =
       '<div class="worktreeTitle"><span>' +
       escapeHtml(l10n.worktrees) +
@@ -1225,6 +1254,96 @@ class GitGraphView {
       });
       list.appendChild(item);
     }
+  }
+
+  private updateWorktreeTop() {
+    const controls = document.getElementById("commitSearch")!.hidden
+      ? document.getElementById("controls")!
+      : document.getElementById("commitSearch")!;
+    document.documentElement.style.setProperty(
+      "--git-fleet-worktree-top",
+      `${Math.ceil(controls.getBoundingClientRect().bottom + 8)}px`
+    );
+  }
+
+  private registerSearchControls() {
+    const search = document.getElementById("commitSearch")!;
+    const input = document.getElementById("commitSearchInput") as HTMLInputElement;
+    const close = () => {
+      search.hidden = true;
+      this.searchMatches = [];
+      this.searchPosition = -1;
+      this.updateSearchStatus();
+      this.updateWorktreeTop();
+    };
+    document.getElementById("searchBtn")!.addEventListener("click", () => {
+      search.hidden = !search.hidden;
+      if (!search.hidden) {
+        input.focus();
+        input.select();
+        this.updateCommitSearch(input.value);
+      }
+      this.updateWorktreeTop();
+    });
+    input.addEventListener("input", () => this.updateCommitSearch(input.value));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        this.moveCommitSearch(event.shiftKey ? -1 : 1);
+      }
+      if (event.key === "Escape") {
+        close();
+      }
+    });
+    document
+      .getElementById("commitSearchPrevious")!
+      .addEventListener("click", () => this.moveCommitSearch(-1));
+    document
+      .getElementById("commitSearchNext")!
+      .addEventListener("click", () => this.moveCommitSearch(1));
+    document.getElementById("commitSearchClose")!.addEventListener("click", close);
+  }
+
+  private updateCommitSearch(query: string) {
+    const normalized = query.trim().toLocaleLowerCase();
+    this.searchMatches = normalized
+      ? this.commits.flatMap((commit, index) =>
+          `${commit.message} ${commit.author} ${commit.hash} ${commit.refs.map((ref) => ref.name).join(" ")}`
+            .toLocaleLowerCase()
+            .includes(normalized)
+            ? [index]
+            : []
+        )
+      : [];
+    this.searchPosition = this.searchMatches.length > 0 ? 0 : -1;
+    this.updateSearchStatus();
+    if (this.searchPosition >= 0) {
+      this.revealSearchMatch();
+    }
+  }
+
+  private moveCommitSearch(direction: number) {
+    if (this.searchMatches.length === 0) {
+      return;
+    }
+    this.searchPosition =
+      (this.searchPosition + direction + this.searchMatches.length) % this.searchMatches.length;
+    this.updateSearchStatus();
+    this.revealSearchMatch();
+  }
+
+  private revealSearchMatch() {
+    const commit = this.commits[this.searchMatches[this.searchPosition]];
+    const row = commit ? this.findCommitRow(commit.hash) : null;
+    row?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    row?.classList.add("commitSearchMatch");
+    window.setTimeout(() => row?.classList.remove("commitSearchMatch"), 900);
+  }
+
+  private updateSearchStatus() {
+    document.getElementById("commitSearchStatus")!.textContent =
+      this.searchMatches.length === 0
+        ? "No matches"
+        : `${this.searchPosition + 1} of ${this.searchMatches.length}`;
   }
 
   private findCommitRow(hash: string): HTMLElement | null {

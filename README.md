@@ -17,7 +17,7 @@ Git Fleet is a VS Code extension for people working across more repositories and
 - A dedicated Activity Bar pane instead of another toolbar inside Source Control
 - Repository discovery below every workspace folder, including nested projects
 - Optional global search roots for repositories outside the current workspace
-- Recent-activity, dirty-file, and folder-tree arrangements
+- Independent list/folder-tree layouts with recent-activity, dirty-file, or alphabetical sorting
 - A persistent eye control that hides clean repositories
 - A clickable Uncommitted Changes row with the same file tree and diff flow as a commit
 - A worktree rail showing each checkout's HEAD, dirty state, branch, and inferred base
@@ -32,7 +32,7 @@ The repository navigator is intentionally read-only. Repository-level actions—
 Git Fleet is not yet listed in the VS Code Marketplace. Download the latest `.vsix` from [GitHub Releases](https://github.com/wrgrant/git-fleet/releases), then run:
 
 ```sh
-code --install-extension git-fleet-v0.1.0.vsix
+code --install-extension git-fleet-v0.2.0.vsix
 ```
 
 Or choose **Extensions: Install from VSIX...** from the VS Code Command Palette.

@@ -12,7 +12,10 @@ import { EXTENSION_NAME } from "@/extension/constant/const";
 import { createMaxDepthTracker } from "@/extension/maxDepthTracker";
 import { registerMessageHandlers } from "@/extension/messageHandler";
 import { createRepoManager, RepoManager } from "@/extension/repoManager";
-import { registerRepositoryNavigator } from "@/extension/repoNavigator";
+import {
+  registerRepositoryNavigator,
+  repositoryPathFromCommandArgument
+} from "@/extension/repoNavigator";
 import { getRepositorySearchRoots } from "@/extension/repositorySearchRoots";
 import { logger } from "@/extension/utils/logger";
 import { WebviewBridge, webviewBridgeFactory } from "@/extension/webviewBridge";
@@ -28,7 +31,8 @@ function registerViewCommand(
   repoManager: RepoManager,
   extensionState: ExtensionState,
   avatarManager: AvatarManager,
-  gitClient: GitClient
+  gitClient: GitClient,
+  onRepositorySelected: (repo: string) => void
 ) {
   let currentPanel: WebviewPanel | undefined;
   let selectRepo: ((repo: string) => void) | undefined;
@@ -71,7 +75,8 @@ function registerViewCommand(
       repoManager,
       extensionState,
       avatarManager,
-      repoFileWatcher
+      repoFileWatcher,
+      onRepositorySelected
     });
     selectRepo = handlers.selectRepo;
     if (repo) {
@@ -98,9 +103,12 @@ function registerViewCommand(
     vscode.commands.registerCommand("git-fleet.view", () =>
       openGraph(undefined, vscode.window.activeTextEditor?.viewColumn)
     ),
-    vscode.commands.registerCommand("git-fleet.openRepositoryGraph", (repo: string) =>
-      openGraph(repo, currentPanel ? undefined : vscode.ViewColumn.Beside)
-    )
+    vscode.commands.registerCommand("git-fleet.openRepositoryGraph", (argument: unknown) => {
+      const repo = repositoryPathFromCommandArgument(argument);
+      if (repo) {
+        openGraph(repo, currentPanel ? undefined : vscode.ViewColumn.Beside);
+      }
+    })
   );
 }
 
@@ -142,8 +150,15 @@ export function initExtension(
       repoManager.setRepos(repoDirs);
       repoManager.sendRepos();
     };
-    registerViewCommand(ctx, repoManager, extensionState, avatarManager, gitClient);
-    registerRepositoryNavigator(ctx, repoManager, extensionState, rescanRepositories);
+    const navigator = registerRepositoryNavigator(
+      ctx,
+      repoManager,
+      extensionState,
+      rescanRepositories
+    );
+    registerViewCommand(ctx, repoManager, extensionState, avatarManager, gitClient, (repo) => {
+      void navigator.revealRepository(repo);
+    });
 
     const gitWatcher = vscode.workspace.createFileSystemWatcher("**/.git");
     ctx.subscriptions.push(

@@ -177,6 +177,31 @@ describe("loadCommits", () => {
     expect(allRefs.every((r) => r.type !== "remote")).toBe(true);
   });
 
+  it("includes the stash ref in show-all history", async () => {
+    const stashRepo = makeRepo();
+    try {
+      fs.writeFileSync(path.join(stashRepo, "file"), "stashed change");
+      git(["add", "file"], stashRepo);
+      git(["stash", "push", "-m", "fleet stash"], stashRepo);
+      const result = await loadCommits(simpleGit(stashRepo), {
+        branchName: "",
+        maxCommits: 300,
+        showRemoteBranches: false,
+        hard: false,
+        dateType: "Author Date",
+        showUncommittedChanges: false
+      });
+
+      expect(result.commits.flatMap((commit) => commit.refs)).toContainEqual({
+        hash: expect.any(String),
+        name: "stash",
+        type: "tag"
+      });
+    } finally {
+      fs.rmSync(stashRepo, { recursive: true, force: true });
+    }
+  });
+
   it("uses commit date when dateType is Commit Date", async () => {
     const result = await loadCommits(simpleGit(repo), {
       branchName: "",

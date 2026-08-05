@@ -97,4 +97,33 @@ describe("working tree and worktree rendering", () => {
     expect(document.querySelector(".worktreeItem")!.textContent).toContain("main");
     expect(document.body.classList.contains("worktreesVisible")).toBe(true);
   });
+
+  it("toggles worktree visibility without removing worktree data", () => {
+    document.getElementById("worktreesBtn")!.click();
+    expect(document.getElementById("worktreeRail")!.hidden).toBe(true);
+    expect(document.body.classList.contains("worktreesVisible")).toBe(false);
+
+    document.getElementById("worktreesBtn")!.click();
+    expect(document.getElementById("worktreeRail")!.hidden).toBe(false);
+  });
+
+  it("sends repository-scoped toolbar actions", () => {
+    vscodeMock.clearMessages();
+    document.getElementById("terminalBtn")!.click();
+    document.getElementById("fetchBtn")!.click();
+    document.getElementById("settingsBtn")!.click();
+
+    expect(vscodeMock.sentMessages).toContainEqual({ command: "openTerminal", repo: REPO });
+    expect(vscodeMock.sentMessages).toContainEqual({ command: "fetchRepository", repo: REPO });
+    expect(vscodeMock.sentMessages).toContainEqual({ command: "openSettings" });
+  });
+
+  it("searches loaded commit messages and reports the match", () => {
+    document.getElementById("searchBtn")!.click();
+    const input = document.getElementById("commitSearchInput") as HTMLInputElement;
+    input.value = "Initial";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+
+    expect(document.getElementById("commitSearchStatus")!.textContent).toBe("1 of 1");
+  });
 });

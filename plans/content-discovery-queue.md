@@ -1,5 +1,19 @@
 # Content discovery queue
 
+## 2026-08-05 — Separate repository structure from urgency
+
+- Why it matters: Folder hierarchy and operational priority answer different questions. A fleet view should let someone keep spatial context while still sorting repositories by recent activity or uncommitted work.
+- Evidence: Git Fleet 0.2 stores layout and sort independently, migrates the 0.1 combined mode, and applies the chosen sort inside each folder.
+- Files changed: `src/extension/repoNavigator.ts`, `src/extensionState.ts`, `package.json`
+- Suggested content angle: The useful abstraction was not another repository mode; it was two orthogonal controls.
+
+## 2026-08-05 — Keep cross-repository navigation synchronized with deep history
+
+- Why it matters: A left-side fleet and right-side graph feel like separate products if selecting a repository in one does not reveal it in the other.
+- Evidence: Repository selection now flows through one extension callback and uses the native TreeView reveal API to select and scroll the matching repository, including inside folder layouts.
+- Files changed: `src/extension/initExtension.ts`, `src/extension/messageHandler.ts`, `src/extension/repoNavigator.ts`
+- Suggested content angle: Bidirectional selection is the small piece of plumbing that turns two useful panes into one application.
+
 ## 2026-08-05 — Audit inherited network code before publishing a fork
 
 - Why it matters: An MIT license permits reuse, but a public release still needs its own credential and privacy audit.

@@ -32,7 +32,19 @@ export function setupHtml(viewState: GG.GitGraphViewState) {
         Show Remote Branches
       </label>
       <div id="refreshBtn" class="roundedBtn">Refresh</div>
+      <button id="searchBtn"></button>
+      <button id="worktreesBtn"></button>
+      <button id="terminalBtn"></button>
+      <button id="fetchBtn"></button>
+      <button id="settingsBtn"></button>
     </div>
+      <div id="commitSearch" hidden>
+        <input id="commitSearchInput">
+        <span id="commitSearchStatus"></span>
+        <button id="commitSearchPrevious"></button>
+        <button id="commitSearchNext"></button>
+        <button id="commitSearchClose"></button>
+      </div>
       <div id="content">
         <div id="commitGraph"></div>
         <div id="commitTable"></div>
