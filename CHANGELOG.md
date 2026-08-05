@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-05
+
+### Added
+
+- A native watched-folder manager with a macOS folder chooser, current-folder list, and per-folder remove buttons
+
+### Changed
+
+- The navigator settings button now opens the watched-folder manager while preserving the raw machine-overridable setting for portability
+
 ## [0.2.0] - 2026-08-05
 
 ### Added
@@ -50,6 +60,7 @@ The first Git Fleet release, forked from Neo Git Graph 0.5.0.
 
 Git Fleet began from Neo Git Graph 0.5.0. Its earlier changelog remains available in the [upstream repository](https://github.com/asispts/neo-git-graph/blob/main/CHANGELOG.md).
 
-[Unreleased]: https://github.com/wrgrant/git-fleet/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/wrgrant/git-fleet/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/wrgrant/git-fleet/releases/tag/v0.2.1
 [0.2.0]: https://github.com/wrgrant/git-fleet/releases/tag/v0.2.0
 [0.1.0]: https://github.com/wrgrant/git-fleet/releases/tag/v0.1.0

@@ -1,5 +1,13 @@
 # Content discovery queue
 
+## 2026-08-05 — Keep portable settings, add a humane management surface
+
+- Status: idea
+- Why it matters: VS Code array settings are portable and syncable, but raw path editors are a poor way to choose folders on a desktop.
+- Evidence: Git Fleet keeps `repositorySearchRoots` as a machine-overridable string array while adding a native folder chooser and per-folder remove controls through a Quick Pick manager.
+- Files changed: `src/extension/repositorySearchRoots.ts`, `package.json`, `README.md`
+- Suggested content angle: Good extension UX often composes native VS Code controls around a durable setting instead of inventing a custom settings format.
+
 ## 2026-08-05 — Separate repository structure from urgency
 
 - Why it matters: Folder hierarchy and operational priority answer different questions. A fleet view should let someone keep spatial context while still sorting repositories by recent activity or uncommitted work.
