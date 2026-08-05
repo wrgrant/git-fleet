@@ -19,6 +19,7 @@ Git Fleet is a VS Code extension for people working across more repositories and
 - Optional global search roots for repositories outside the current workspace
 - Independent list/folder-tree layouts with recent-activity, dirty-file, or alphabetical sorting
 - A persistent eye control that hides clean repositories
+- Compact repository rows that preserve age and branch context, with clean/dirty status pinned at the right edge
 - A clickable Uncommitted Changes row with the same file tree and diff flow as a commit
 - A worktree rail showing each checkout's HEAD, dirty state, branch, and inferred base
 - Viewport-edge arrows when a worktree connector continues above or below the loaded history
