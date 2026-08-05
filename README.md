@@ -37,7 +37,7 @@ code --install-extension git-fleet-v0.2.0.vsix
 
 Or choose **Extensions: Install from VSIX...** from the VS Code Command Palette.
 
-After installation, select the Git Fleet icon in the Activity Bar. The folder-plus button adds a repository search root that should be visible from every VS Code window.
+After installation, select the Git Fleet icon in the Activity Bar. The folder-plus button opens the native folder chooser. The adjacent settings button opens **Git Fleet: Watched Folders**, where extra folders can be added or removed without editing JSON.
 
 ## Configuration
 

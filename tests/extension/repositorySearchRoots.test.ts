@@ -11,10 +11,42 @@ const mock = vi.hoisted(() => {
   let configuredRoots: string[] = [];
   let workspaceRoots: string[] = [];
   const commands = new Map<string, (...args: unknown[]) => unknown>();
-  const update = vi.fn();
+  const update = vi.fn((_key: string, value: string[]) => {
+    configuredRoots = value;
+  });
+  const topButtonListeners: Array<(button: unknown) => unknown> = [];
+  const itemButtonListeners: Array<(event: { item: unknown }) => unknown> = [];
+  const hideListeners: Array<() => unknown> = [];
+  const quickPick = {
+    buttons: [] as unknown[],
+    items: [] as unknown[],
+    placeholder: "",
+    title: "",
+    matchOnDescription: false,
+    matchOnDetail: false,
+    dispose: vi.fn(),
+    hide: vi.fn(() => hideListeners.forEach((listener) => listener())),
+    show: vi.fn(),
+    onDidHide: (listener: () => unknown) => {
+      hideListeners.push(listener);
+      return { dispose: vi.fn() };
+    },
+    onDidTriggerButton: (listener: (button: unknown) => unknown) => {
+      topButtonListeners.push(listener);
+      return { dispose: vi.fn() };
+    },
+    onDidTriggerItemButton: (listener: (event: { item: unknown }) => unknown) => {
+      itemButtonListeners.push(listener);
+      return { dispose: vi.fn() };
+    }
+  };
 
   return {
     ConfigurationTarget: { Global: 1 },
+    ThemeIcon: class ThemeIcon {
+      constructor(public readonly id: string) {}
+    },
+    l10n: { t: (value: string) => value },
     Uri: { file: (fsPath: string) => ({ fsPath }) },
     commands: {
       executeCommand: vi.fn(),
@@ -33,7 +65,7 @@ const mock = vi.hoisted(() => {
         update
       })
     },
-    window: { showOpenDialog: vi.fn() },
+    window: { createQuickPick: vi.fn(() => quickPick), showOpenDialog: vi.fn() },
     setConfiguredRoots(roots: string[]) {
       configuredRoots = roots;
     },
@@ -42,6 +74,13 @@ const mock = vi.hoisted(() => {
     },
     invoke(id: string) {
       return commands.get(id)?.();
+    },
+    quickPick,
+    async triggerTopButton(index: number) {
+      await topButtonListeners[0]?.(quickPick.buttons[index]);
+    },
+    async triggerItemButton(index: number) {
+      await itemButtonListeners[0]?.({ item: quickPick.items[index] });
     },
     update
   };
@@ -53,6 +92,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mock.setConfiguredRoots([]);
   mock.setWorkspaceRoots([]);
+  mock.quickPick.items = [];
 });
 
 describe("repository search roots", () => {
@@ -77,5 +117,34 @@ describe("repository search roots", () => {
       [path.resolve("/repos"), path.resolve("/archive")],
       mock.ConfigurationTarget.Global
     );
+  });
+
+  it("manages watched folders with native add and remove controls", async () => {
+    const ctx = { subscriptions: [] } as unknown as import("vscode").ExtensionContext;
+    mock.setConfiguredRoots(["/repos"]);
+    mock.window.showOpenDialog.mockResolvedValue([{ fsPath: "/archive" }]);
+    registerRepositorySearchRootCommands(ctx);
+
+    const manager = mock.invoke("git-fleet.openRepositorySearchRootsSettings");
+    expect(mock.quickPick.title).toBe("Git Fleet: Watched Folders");
+    expect(mock.quickPick.items).toHaveLength(1);
+
+    await mock.triggerTopButton(0);
+    expect(mock.update).toHaveBeenCalledWith(
+      "repositorySearchRoots",
+      [path.resolve("/repos"), path.resolve("/archive")],
+      mock.ConfigurationTarget.Global
+    );
+    expect(mock.quickPick.items).toHaveLength(2);
+
+    await mock.triggerItemButton(0);
+    expect(mock.update).toHaveBeenLastCalledWith(
+      "repositorySearchRoots",
+      [path.resolve("/archive")],
+      mock.ConfigurationTarget.Global
+    );
+
+    mock.quickPick.hide();
+    await manager;
   });
 });
