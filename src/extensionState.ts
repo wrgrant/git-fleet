@@ -3,13 +3,21 @@ import * as fs from "node:fs";
 import { ExtensionContext, Memento } from "vscode";
 
 import { getPathFromStr } from "./backend/utils/path";
-import { Avatar, AvatarCache, GitRepoSet, RepositoryNavigatorMode } from "./types";
+import {
+  Avatar,
+  AvatarCache,
+  GitRepoSet,
+  RepositoryNavigatorLayout,
+  RepositoryNavigatorSort
+} from "./types";
 
 const AVATAR_STORAGE_FOLDER = "/avatars";
 const AVATAR_CACHE = "avatarCache";
 const LAST_ACTIVE_REPO = "lastActiveRepo";
 const REPO_STATES = "repoStates";
 const REPOSITORY_NAVIGATOR_MODE = "repositoryNavigatorMode";
+const REPOSITORY_NAVIGATOR_LAYOUT = "repositoryNavigatorLayout";
+const REPOSITORY_NAVIGATOR_SORT = "repositoryNavigatorSort";
 const HIDE_CLEAN_REPOSITORIES = "hideCleanRepositories";
 
 export class ExtensionState {
@@ -55,11 +63,26 @@ export class ExtensionState {
   }
 
   /* Repository Navigator */
-  public getRepositoryNavigatorMode() {
-    return this.workspaceState.get<RepositoryNavigatorMode>(REPOSITORY_NAVIGATOR_MODE, "activity");
+  public getRepositoryNavigatorLayout(): RepositoryNavigatorLayout {
+    const saved = this.workspaceState.get<RepositoryNavigatorLayout>(REPOSITORY_NAVIGATOR_LAYOUT);
+    if (saved) {
+      return saved;
+    }
+    return this.workspaceState.get<string>(REPOSITORY_NAVIGATOR_MODE) === "tree" ? "tree" : "list";
   }
-  public setRepositoryNavigatorMode(mode: RepositoryNavigatorMode) {
-    this.workspaceState.update(REPOSITORY_NAVIGATOR_MODE, mode);
+  public setRepositoryNavigatorLayout(layout: RepositoryNavigatorLayout) {
+    this.workspaceState.update(REPOSITORY_NAVIGATOR_LAYOUT, layout);
+  }
+  public getRepositoryNavigatorSort(): RepositoryNavigatorSort {
+    const saved = this.workspaceState.get<RepositoryNavigatorSort>(REPOSITORY_NAVIGATOR_SORT);
+    if (saved) {
+      return saved;
+    }
+    const legacy = this.workspaceState.get<string>(REPOSITORY_NAVIGATOR_MODE);
+    return legacy === "dirty" ? "dirty" : legacy === "tree" ? "alphabetical" : "activity";
+  }
+  public setRepositoryNavigatorSort(sort: RepositoryNavigatorSort) {
+    this.workspaceState.update(REPOSITORY_NAVIGATOR_SORT, sort);
   }
   public getHideCleanRepositories() {
     return this.workspaceState.get<boolean>(HIDE_CLEAN_REPOSITORIES, false);

@@ -116,6 +116,7 @@ declare global {
     expandedCommit: ExpandedCommit | null;
     worktrees?: GitWorktree[];
     worktreeBaselineRef?: string | null;
+    worktreesVisible?: boolean;
   }
 }
 

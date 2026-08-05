@@ -21,6 +21,10 @@
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  overflow: hidden;
+  padding-right: 24px;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 .dropdownCurrentValue:hover {
   background-color: rgba(128, 128, 128, 0.2);
@@ -54,6 +58,8 @@
   overflow-x: hidden;
   margin-top: -1px;
   white-space: nowrap;
+  min-width: 100%;
+  max-width: min(520px, 90vw);
 }
 
 .dropdownOption {

@@ -127,6 +127,7 @@ export class Dropdown {
   private render() {
     this.elem.classList.add("loaded");
     this.currentValueElem.innerHTML = escapeHtml(this.options[this.selectedOption].name);
+    this.currentValueElem.title = this.options[this.selectedOption].value;
     let html = "";
     for (let i = 0; i < this.options.length; i++) {
       html +=
@@ -152,11 +153,7 @@ export class Dropdown {
     this.menuElem.style.cssText = "opacity:0; display:block;";
     // Width must be at least 130px for the filter elements. Max height for the dropdown is [filter (31px) + 9.5 * dropdown item (28px) = 297px]
     // Don't need to add 12px if showing info icons and scrollbar isn't needed. The scrollbar isn't needed if: menuElem height + filter input (25px) < 297px
-    this.currentValueElem.style.width =
-      Math.max(
-        this.menuElem.offsetWidth + (this.showInfo && this.menuElem.offsetHeight < 272 ? 0 : 12),
-        130
-      ) + "px";
+    this.currentValueElem.style.width = "100%";
     this.menuElem.style.cssText = "right:0; overflow-y:auto; max-height:297px;";
     if (this.dropdownVisible) {
       this.filter();

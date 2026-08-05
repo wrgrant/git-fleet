@@ -87,6 +87,9 @@ body.worktreesVisible #footer {
 #commitTable tr.commit:hover td {
   cursor: pointer;
 }
+#commitTable tr.commit.commitSearchMatch td:not(:first-child) {
+  background-color: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 196, 0, 0.35));
+}
 #commitTable tr.commit:hover td:first-child,
 #commitTable tr.commit.contextMenuActive td:first-child,
 #commitTable tr.commit.dialogActive td:first-child,
@@ -197,7 +200,7 @@ body.worktreesVisible #footer {
 /* Worktree history rail */
 #worktreeRail {
   position: fixed;
-  top: 44px;
+  top: var(--git-fleet-worktree-top, 52px);
   right: 8px;
   bottom: 8px;
   z-index: 4;
@@ -353,7 +356,7 @@ body.worktreesVisible #footer {
 @media (max-width: 760px) {
   body.worktreesVisible #content,
   body.worktreesVisible #footer {
-    margin-right: 0;
+    margin-right: 234px;
   }
   #worktreeRail {
     width: 218px;
@@ -590,14 +593,26 @@ svg.fileIcon {
 
 /* Controls */
 #controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   padding: 4px 8px;
   border-bottom: 1px solid rgba(128, 128, 128, 0.5);
   line-height: 32px;
   font-weight: 700;
   font-size: 13px;
+}
+#controlFields {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+#controlActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-top: 3px;
 }
 #repoControl,
 #branchControl,
@@ -605,20 +620,68 @@ svg.fileIcon {
   white-space: nowrap;
   margin: 0 10px;
 }
+#repoControl,
+#branchControl {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
 #repoSelect,
 #branchSelect {
   margin-left: 3px;
+  min-width: 130px;
+  max-width: min(34vw, 360px);
+  width: 260px;
+}
+#branchSelect {
+  max-width: min(42vw, 460px);
+  width: 340px;
 }
 #showRemoteBranchesCheckbox {
   width: 14px;
   vertical-align: text-top;
 }
-#refreshBtn {
-  margin-left: auto;
-  width: 80px;
-  height: 22px;
-  line-height: 22px;
-  border-radius: 11px;
+.iconBtn {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font: 13px/24px var(--vscode-editor-font-family);
+  cursor: pointer;
+}
+.iconBtn:hover,
+.iconBtn:focus-visible,
+.iconBtn.active {
+  background: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.18));
+  outline: none;
+}
+#commitSearch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.35);
+}
+#commitSearch[hidden] {
+  display: none;
+}
+#commitSearchInput {
+  min-width: 140px;
+  max-width: 520px;
+  flex: 1;
+  height: 26px;
+  padding: 3px 7px;
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.5));
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+}
+#commitSearchStatus {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  white-space: nowrap;
 }
 #loadMoreCommitsBtn {
   width: 180px;
@@ -634,6 +697,16 @@ svg.fileIcon {
 }
 #controls label {
   cursor: pointer;
+}
+@media (max-width: 720px) {
+  #repoSelect,
+  #branchSelect {
+    width: 190px;
+    max-width: 42vw;
+  }
+  #showRemoteBranchesControl {
+    flex-basis: 100%;
+  }
 }
 
 /* Context Menu */

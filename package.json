@@ -1,7 +1,7 @@
 {
   "name": "git-fleet",
   "displayName": "Git Fleet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "%description%",
   "categories": [
     "SCM Providers",
@@ -109,20 +109,32 @@
       },
       {
         "category": "Git Fleet",
-        "command": "git-fleet.changeRepositoryNavigatorMode",
+        "command": "git-fleet.changeRepositoryNavigatorLayout",
         "icon": "$(list-tree)",
-        "title": "%command.changeRepositoryNavigatorMode%"
+        "title": "%command.changeRepositoryNavigatorLayout%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.changeRepositoryNavigatorSort",
+        "icon": "$(sort-precedence)",
+        "title": "%command.changeRepositoryNavigatorSort%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.collapseRepositoryFolders",
+        "icon": "$(collapse-all)",
+        "title": "%command.collapseRepositoryFolders%"
       },
       {
         "category": "Git Fleet",
         "command": "git-fleet.hideCleanRepositories",
-        "icon": "$(eye-closed)",
+        "icon": "$(eye)",
         "title": "%command.hideCleanRepositories%"
       },
       {
         "category": "Git Fleet",
         "command": "git-fleet.showAllRepositories",
-        "icon": "$(eye)",
+        "icon": "$(eye-closed)",
         "title": "%command.showAllRepositories%"
       },
       {
@@ -136,6 +148,18 @@
         "command": "git-fleet.openRepositorySearchRootsSettings",
         "icon": "$(settings-gear)",
         "title": "%command.openRepositorySearchRootsSettings%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.openRepositoryTerminal",
+        "icon": "$(terminal)",
+        "title": "%command.openRepositoryTerminal%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.fetchRepository",
+        "icon": "$(cloud-download)",
+        "title": "%command.fetchRepository%"
       }
     ],
     "viewsContainers": {
@@ -172,27 +196,47 @@
           "when": "view == git-fleet.repositoryNavigator"
         },
         {
-          "command": "git-fleet.changeRepositoryNavigatorMode",
+          "command": "git-fleet.changeRepositoryNavigatorLayout",
           "group": "navigation@2",
           "when": "view == git-fleet.repositoryNavigator"
         },
         {
-          "command": "git-fleet.hideCleanRepositories",
+          "command": "git-fleet.changeRepositoryNavigatorSort",
           "group": "navigation@3",
+          "when": "view == git-fleet.repositoryNavigator"
+        },
+        {
+          "command": "git-fleet.collapseRepositoryFolders",
+          "group": "navigation@4",
+          "when": "view == git-fleet.repositoryNavigator && gitFleet.repositoryLayoutTree"
+        },
+        {
+          "command": "git-fleet.hideCleanRepositories",
+          "group": "navigation@5",
           "when": "view == git-fleet.repositoryNavigator && !gitFleet.hideCleanRepositories"
         },
         {
           "command": "git-fleet.showAllRepositories",
-          "group": "navigation@3",
+          "group": "navigation@5",
           "when": "view == git-fleet.repositoryNavigator && gitFleet.hideCleanRepositories"
         },
         {
           "command": "git-fleet.refreshRepositoryNavigator",
-          "group": "navigation@4",
+          "group": "navigation@6",
           "when": "view == git-fleet.repositoryNavigator"
         }
       ],
       "view/item/context": [
+        {
+          "command": "git-fleet.openRepositoryTerminal",
+          "group": "inline@1",
+          "when": "view == git-fleet.repositoryNavigator && viewItem == repositoryNavigator.repository"
+        },
+        {
+          "command": "git-fleet.fetchRepository",
+          "group": "inline@2",
+          "when": "view == git-fleet.repositoryNavigator && viewItem == repositoryNavigator.repository"
+        },
         {
           "command": "git-fleet.openRepositoryGraph",
           "group": "navigation",

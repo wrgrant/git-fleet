@@ -92,9 +92,18 @@ export function registerMessageHandlers(
     extensionState: ExtensionState;
     avatarManager: AvatarManager;
     repoFileWatcher: RepoFileWatcher;
+    onRepositorySelected?: (repo: string) => void;
   }
 ) {
-  const { config, gitClient, repoManager, extensionState, avatarManager, repoFileWatcher } = deps;
+  const {
+    config,
+    gitClient,
+    repoManager,
+    extensionState,
+    avatarManager,
+    repoFileWatcher,
+    onRepositorySelected
+  } = deps;
 
   let currentRepo: string | null = null;
 
@@ -106,6 +115,7 @@ export function registerMessageHandlers(
     gitClient.setRepo(repo);
     extensionState.setLastActiveRepo(repo);
     repoFileWatcher.start(repo);
+    onRepositorySelected?.(repo);
   }
 
   function registerAction<T extends RequestMessage["command"]>(
@@ -188,6 +198,34 @@ export function registerMessageHandlers(
 
   bridge.onMessage("selectRepo", (msg) => {
     selectRepo(msg.repo);
+  });
+
+  bridge.onMessage("openTerminal", (msg) => {
+    vscode.window
+      .createTerminal({ cwd: msg.repo, name: `Git Fleet: ${path.basename(msg.repo)}` })
+      .show();
+  });
+
+  bridge.onMessage("fetchRepository", async (msg) => {
+    selectRepo(msg.repo);
+    try {
+      await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Window, title: `Fetching ${path.basename(msg.repo)}` },
+        () => gitClient.getInstance().fetch(["--all", "--prune"])
+      );
+      bridge.post({ command: "refresh" });
+    } catch (error) {
+      void vscode.window.showErrorMessage(
+        `Git Fleet could not fetch ${path.basename(msg.repo)}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  });
+
+  bridge.onMessage("openSettings", () => {
+    void vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      "@ext:wgrant-dev.git-fleet"
+    );
   });
 
   bridge.onMessage("loadRepos", async (msg) => {

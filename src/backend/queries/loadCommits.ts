@@ -27,7 +27,10 @@ async function getRefs(git: SimpleGit, showRemoteBranches: boolean): Promise<Git
       args.push("--heads", "--tags");
     }
     args.push("-d", "--head");
-    const stdout = await git.raw(args);
+    let stdout = await git.raw(args);
+    if (!showRemoteBranches) {
+      stdout += await git.raw(["show-ref", "--verify", "refs/stash"]).catch(() => "");
+    }
     const refData: GitRefData = { head: null, refs: [] };
     const lines = stdout.split(eolRegex);
     for (let i = 0; i < lines.length - 1; i++) {
@@ -47,6 +50,8 @@ async function getRefs(git: SimpleGit, showRemoteBranches: boolean): Promise<Git
         });
       } else if (ref.startsWith("refs/remotes/")) {
         refData.refs.push({ hash, name: ref.substring(13), type: "remote" });
+      } else if (ref === "refs/stash") {
+        refData.refs.push({ hash, name: "stash", type: "tag" });
       } else if (ref === "HEAD") {
         refData.head = hash;
       }
@@ -73,6 +78,14 @@ async function getLog(
     args.push("--branches", "--tags");
     if (showRemoteBranches) {
       args.push("--remotes");
+    }
+    if (
+      await git.raw(["rev-parse", "--verify", "refs/stash"]).then(
+        () => true,
+        () => false
+      )
+    ) {
+      args.push("refs/stash");
     }
   }
   try {

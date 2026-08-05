@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-05
+
+### Added
+
+- Independent repository layout and sort controls, including activity, dirty-file, and alphabetical sorting inside folder trees
+- Bidirectional selection between the repository navigator and the graph repository picker
+- Commit search across messages, authors, hashes, branches, tags, and stash labels
+- Worktree visibility, repository terminal, fetch, settings, and icon-only refresh actions in the graph header
+- Inline terminal and fetch actions on repository rows
+- Stash history and labels in the show-all graph; tag history remains visible
+
+### Changed
+
+- Kept graph controls anchored above the worktree rail at narrow panel widths
+- Capped repository and branch picker widths with ellipsis and full-value tooltips
+- Made collapse-all available only in folder-tree layout
+- Made the clean-repository eye show the current visibility state
+
 ## [0.1.0] - 2026-08-05
 
 The first Git Fleet release, forked from Neo Git Graph 0.5.0.
@@ -32,5 +50,6 @@ The first Git Fleet release, forked from Neo Git Graph 0.5.0.
 
 Git Fleet began from Neo Git Graph 0.5.0. Its earlier changelog remains available in the [upstream repository](https://github.com/asispts/neo-git-graph/blob/main/CHANGELOG.md).
 
-[Unreleased]: https://github.com/wrgrant/git-fleet/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/wrgrant/git-fleet/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/wrgrant/git-fleet/releases/tag/v0.2.0
 [0.1.0]: https://github.com/wrgrant/git-fleet/releases/tag/v0.1.0
