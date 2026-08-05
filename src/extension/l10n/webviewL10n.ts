@@ -22,6 +22,18 @@ export function getWebviewLocalizedStrings() {
     date: vscode.l10n.t("Date"),
     author: vscode.l10n.t("Author"),
     commit: vscode.l10n.t("Commit"),
+    worktrees: vscode.l10n.t("Worktrees"),
+    worktreeHelp: vscode.l10n.t("Hover to connect HEAD and its inferred base to history."),
+    worktreeCurrent: vscode.l10n.t("current"),
+    worktreeClean: vscode.l10n.t("clean"),
+    worktreeChanged: vscode.l10n.t("{0} changed"),
+    worktreePrunable: vscode.l10n.t("prunable"),
+    worktreeLocked: vscode.l10n.t("locked"),
+    worktreeBase: vscode.l10n.t("base {0}"),
+    worktreeDivergence: vscode.l10n.t("{0} ahead · {1} behind"),
+    worktreeOutsideHistory: vscode.l10n.t("outside loaded history"),
+    workingTree: vscode.l10n.t("Working Tree"),
+    workingTreeHelp: vscode.l10n.t("Changes in the checkout that have not been committed."),
 
     // Error messages
     unableToLoadCommitDetails: vscode.l10n.t("Unable to load commit details"),

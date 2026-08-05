@@ -1,0 +1,36 @@
+name: Release VSIX
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        run: pnpm run package && pnpm run test
+
+      - name: Package VSIX
+        run: pnpm dlx @vscode/vsce package --no-dependencies --out git-fleet-${{ github.ref_name }}.vsix
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: git-fleet-${{ github.ref_name }}.vsix

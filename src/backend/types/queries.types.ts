@@ -1,4 +1,4 @@
-import type { GitCommitDetails, GitCommitNode } from "./git.types";
+import type { GitCommitDetails, GitCommitNode, GitWorktree } from "./git.types";
 
 type QueryPayloads = {
   commitDetails: {
@@ -23,6 +23,10 @@ type QueryPayloads = {
       moreCommitsAvailable: boolean;
       hard: boolean;
     };
+  };
+  loadWorktrees: {
+    request: { repo: string };
+    response: { worktrees: GitWorktree[]; baselineRef: string | null };
   };
 };
 

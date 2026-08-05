@@ -20,7 +20,7 @@ export function createRepoManager(
   config: Config
 ) {
   let repos = extensionState.getRepos();
-  let viewCallback: ((repos: GitRepoSet, numRepos: number) => void) | null = null;
+  const viewCallbacks = new Set<(repos: GitRepoSet, numRepos: number) => void>();
 
   function setRepos(repoDirs: string[]) {
     const next: GitRepoSet = {};
@@ -39,8 +39,8 @@ export function createRepoManager(
     const sorted = getRepos();
     const numRepos = Object.keys(sorted).length;
     statusBarItem.setNumRepos(numRepos);
-    if (viewCallback !== null) {
-      viewCallback(sorted, numRepos);
+    for (const callback of viewCallbacks) {
+      callback(sorted, numRepos);
     }
   }
 
@@ -50,11 +50,16 @@ export function createRepoManager(
   }
 
   function registerViewCallback(cb: (repos: GitRepoSet, numRepos: number) => void) {
-    viewCallback = cb;
+    viewCallbacks.add(cb);
+    return () => viewCallbacks.delete(cb);
   }
 
-  function deregisterViewCallback() {
-    viewCallback = null;
+  function deregisterViewCallback(cb?: (repos: GitRepoSet, numRepos: number) => void) {
+    if (cb) {
+      viewCallbacks.delete(cb);
+    } else {
+      viewCallbacks.clear();
+    }
   }
 
   function isDirectoryWithinRepos(path: string) {

@@ -1,4 +1,4 @@
-import type { GitCommitDetails, GitCommitNode } from "@/backend/types";
+import type { GitCommitDetails, GitCommitNode, GitWorktree } from "@/backend/types";
 import * as GG from "@/types";
 
 declare global {
@@ -114,6 +114,8 @@ declare global {
     maxCommits: number;
     showRemoteBranches: boolean;
     expandedCommit: ExpandedCommit | null;
+    worktrees?: GitWorktree[];
+    worktreeBaselineRef?: string | null;
   }
 }
 

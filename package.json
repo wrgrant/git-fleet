@@ -1,7 +1,7 @@
 {
-  "name": "neo-git-graph",
-  "displayName": "(neo) Git Graph",
-  "version": "0.5.0",
+  "name": "git-fleet",
+  "displayName": "Git Fleet",
+  "version": "0.1.0",
   "description": "%description%",
   "categories": [
     "SCM Providers",
@@ -12,18 +12,25 @@
     "git",
     "git graph",
     "git history",
-    "git log"
+    "git log",
+    "multi repository",
+    "repository manager",
+    "worktree"
   ],
-  "homepage": "https://github.com/asispts/neo-git-graph",
+  "homepage": "https://github.com/wrgrant/git-fleet#readme",
   "bugs": {
-    "url": "https://github.com/asispts/neo-git-graph/issues"
+    "url": "https://github.com/wrgrant/git-fleet/issues"
   },
   "license": "MIT",
   "author": {
-    "name": "Asis Pattisahusiwa",
-    "email": "asispts@gmail.com"
+    "name": "William Grant",
+    "url": "https://wgrant.dev"
   },
   "contributors": [
+    {
+      "name": "Asis Pattisahusiwa",
+      "url": "https://github.com/asispts"
+    },
     {
       "name": "Michael Hutchison",
       "url": "https://github.com/mhutchie"
@@ -31,9 +38,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/asispts/neo-git-graph.git"
+    "url": "https://github.com/wrgrant/git-fleet.git"
   },
-  "publisher": "asispts",
+  "publisher": "wgrant-dev",
   "main": "./out/extension.js",
   "scripts": {
     "typecheck": "tsc -p . --noEmit && tsc -p ./src --noEmit && tsc -p ./src/webview --noEmit && tsc -p ./tests --noEmit && tsc -p ./tests-ext --noEmit",
@@ -76,8 +83,8 @@
   "contributes": {
     "commands": [
       {
-        "category": "(neo) Git Graph",
-        "command": "neo-git-graph.view",
+        "category": "Git Fleet",
+        "command": "git-fleet.view",
         "title": "%command.view%",
         "icon": {
           "light": "resources/webview-icon-light.svg",
@@ -85,30 +92,124 @@
         }
       },
       {
-        "category": "(neo) Git Graph",
-        "command": "neo-git-graph.clearAvatarCache",
+        "category": "Git Fleet",
+        "command": "git-fleet.clearAvatarCache",
         "title": "%command.clearAvatarCache%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.openRepositoryGraph",
+        "title": "%command.openRepositoryGraph%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.refreshRepositoryNavigator",
+        "icon": "$(refresh)",
+        "title": "%command.refreshRepositoryNavigator%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.changeRepositoryNavigatorMode",
+        "icon": "$(list-tree)",
+        "title": "%command.changeRepositoryNavigatorMode%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.hideCleanRepositories",
+        "icon": "$(eye-closed)",
+        "title": "%command.hideCleanRepositories%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.showAllRepositories",
+        "icon": "$(eye)",
+        "title": "%command.showAllRepositories%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.addRepositorySearchRoot",
+        "icon": "$(folder-opened)",
+        "title": "%command.addRepositorySearchRoot%"
+      },
+      {
+        "category": "Git Fleet",
+        "command": "git-fleet.openRepositorySearchRootsSettings",
+        "icon": "$(settings-gear)",
+        "title": "%command.openRepositorySearchRootsSettings%"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "git-fleet",
+          "title": "%viewContainer.gitFleet%",
+          "icon": "resources/repository-navigator.svg"
+        }
+      ]
+    },
+    "views": {
+      "git-fleet": [
+        {
+          "id": "git-fleet.repositoryNavigator",
+          "name": "%view.repositoryNavigator%",
+          "icon": "resources/repository-navigator.svg",
+          "contextualTitle": "%viewContainer.gitFleet%"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "git-fleet.repositoryNavigator",
+        "contents": "No repositories with uncommitted changes.\n[Show all repositories](command:git-fleet.showAllRepositories)",
+        "when": "gitFleet.hideCleanRepositories"
       }
     ],
     "menus": {
-      "scm/title": [
+      "view/title": [
         {
-          "command": "neo-git-graph.view",
+          "command": "git-fleet.addRepositorySearchRoot",
+          "group": "navigation@1",
+          "when": "view == git-fleet.repositoryNavigator"
+        },
+        {
+          "command": "git-fleet.changeRepositoryNavigatorMode",
+          "group": "navigation@2",
+          "when": "view == git-fleet.repositoryNavigator"
+        },
+        {
+          "command": "git-fleet.hideCleanRepositories",
+          "group": "navigation@3",
+          "when": "view == git-fleet.repositoryNavigator && !gitFleet.hideCleanRepositories"
+        },
+        {
+          "command": "git-fleet.showAllRepositories",
+          "group": "navigation@3",
+          "when": "view == git-fleet.repositoryNavigator && gitFleet.hideCleanRepositories"
+        },
+        {
+          "command": "git-fleet.refreshRepositoryNavigator",
+          "group": "navigation@4",
+          "when": "view == git-fleet.repositoryNavigator"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "git-fleet.openRepositoryGraph",
           "group": "navigation",
-          "when": "scmProvider == git"
+          "when": "view == git-fleet.repositoryNavigator && viewItem == repositoryNavigator.repository"
         }
       ]
     },
     "configuration": {
       "type": "object",
-      "title": "(neo) Git Graph",
+      "title": "Git Fleet",
       "properties": {
-        "neo-git-graph.autoCenterCommitDetailsView": {
+        "git-fleet.autoCenterCommitDetailsView": {
           "type": "boolean",
           "default": true,
           "description": "%config.autoCenterCommitDetailsView%"
         },
-        "neo-git-graph.dateFormat": {
+        "git-fleet.dateFormat": {
           "type": "string",
           "enum": [
             "Date & Time",
@@ -123,7 +224,7 @@
           "default": "Date & Time",
           "description": "%config.dateFormat%"
         },
-        "neo-git-graph.dateType": {
+        "git-fleet.dateType": {
           "type": "string",
           "enum": [
             "Author Date",
@@ -136,12 +237,12 @@
           "default": "Author Date",
           "description": "%config.dateType%"
         },
-        "neo-git-graph.fetchAvatars": {
+        "git-fleet.fetchAvatars": {
           "type": "boolean",
           "default": false,
           "description": "%config.fetchAvatars%"
         },
-        "neo-git-graph.graphColours": {
+        "git-fleet.graphColours": {
           "type": "array",
           "items": {
             "type": "string",
@@ -164,7 +265,7 @@
           ],
           "description": "%config.graphColours%"
         },
-        "neo-git-graph.graphStyle": {
+        "git-fleet.graphStyle": {
           "type": "string",
           "enum": [
             "rounded",
@@ -177,37 +278,46 @@
           "default": "rounded",
           "description": "%config.graphStyle%"
         },
-        "neo-git-graph.initialLoadCommits": {
+        "git-fleet.initialLoadCommits": {
           "type": "number",
           "default": 300,
           "description": "%config.initialLoadCommits%"
         },
-        "neo-git-graph.loadMoreCommits": {
+        "git-fleet.loadMoreCommits": {
           "type": "number",
           "default": 100,
           "description": "%config.loadMoreCommits%"
         },
-        "neo-git-graph.maxDepthOfRepoSearch": {
+        "git-fleet.maxDepthOfRepoSearch": {
           "type": "number",
-          "default": 0,
+          "default": 4,
           "description": "%config.maxDepthOfRepoSearch%"
         },
-        "neo-git-graph.showCurrentBranchByDefault": {
+        "git-fleet.repositorySearchRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "machine-overridable",
+          "description": "%config.repositorySearchRoots%"
+        },
+        "git-fleet.showCurrentBranchByDefault": {
           "type": "boolean",
           "default": false,
           "description": "%config.showCurrentBranchByDefault%"
         },
-        "neo-git-graph.showStatusBarItem": {
+        "git-fleet.showStatusBarItem": {
           "type": "boolean",
           "default": true,
           "description": "%config.showStatusBarItem%"
         },
-        "neo-git-graph.showUncommittedChanges": {
+        "git-fleet.showUncommittedChanges": {
           "type": "boolean",
           "default": true,
           "description": "%config.showUncommittedChanges%"
         },
-        "neo-git-graph.tabIconColourTheme": {
+        "git-fleet.tabIconColourTheme": {
           "type": "string",
           "enum": [
             "colour",
@@ -226,9 +336,17 @@
   "activationEvents": [
     "onStartupFinished"
   ],
+  "extensionKind": [
+    "workspace"
+  ],
   "icon": "resources/icon.png",
   "engines": {
     "vscode": "^1.98.0"
   },
-  "packageManager": "pnpm@11.15.1"
+  "packageManager": "pnpm@11.15.1",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    }
+  }
 }

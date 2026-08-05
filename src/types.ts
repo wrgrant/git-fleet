@@ -35,6 +35,7 @@ export type AvatarCache = { [email: string]: Avatar };
 
 export type DateFormat = "Date & Time" | "Date Only" | "Relative";
 export type GraphStyle = "rounded" | "angular";
+export type RepositoryNavigatorMode = "activity" | "dirty" | "tree";
 
 /* Infrastructure Request / Response Messages */
 
@@ -116,4 +117,5 @@ export type ResponseMessage =
   | ResponseLoadRepos
   | ResponseCopyToClipboard
   | ResponseViewDiff
+  | RequestSelectRepo
   | ResponseRefresh;

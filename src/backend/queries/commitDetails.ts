@@ -68,11 +68,79 @@ async function fetchNumStat(git: SimpleGit, commitHash: string): Promise<string[
   return stdout.split(eolRegex);
 }
 
+type PorcelainChange = {
+  status: string;
+  oldFilePath: string;
+  newFilePath: string;
+};
+
+function parseWorkingTreeStatus(stdout: string): PorcelainChange[] {
+  const entries = stdout.split("\0");
+  const changes: PorcelainChange[] = [];
+  for (let i = 0; i < entries.length - 1; i++) {
+    const entry = entries[i];
+    if (entry.length < 4) {
+      continue;
+    }
+    const status = entry.substring(0, 2);
+    const newFilePath = toPath(entry.substring(3));
+    let oldFilePath = newFilePath;
+    if (status.includes("R") || status.includes("C")) {
+      oldFilePath = toPath(entries[++i] ?? newFilePath);
+    }
+    changes.push({ status, oldFilePath, newFilePath });
+  }
+  return changes;
+}
+
+function workingTreeChangeType(status: string): GitFileChangeType {
+  if (status === "??" || status.includes("A")) {
+    return "A";
+  }
+  if (status.includes("D")) {
+    return "D";
+  }
+  if (status.includes("R")) {
+    return "R";
+  }
+  return "M";
+}
+
+async function workingTreeDetails(git: SimpleGit): Promise<GitCommitDetails> {
+  const [statusOutput, head, branch] = await Promise.all([
+    git.raw(["status", "--porcelain=v1", "-z", "--untracked-files=all"]),
+    git.revparse(["HEAD"]),
+    git.branchLocal()
+  ]);
+  const fileChanges = parseWorkingTreeStatus(statusOutput).map((change) => ({
+    oldFilePath: change.oldFilePath,
+    newFilePath: change.newFilePath,
+    type: workingTreeChangeType(change.status),
+    // Working-tree diffs are opened directly against the checkout, including
+    // untracked files. Zeroes keep every text file actionable in the file tree.
+    additions: 0,
+    deletions: 0
+  }));
+  return {
+    hash: "*",
+    parents: [head.trim()],
+    author: "",
+    email: "",
+    date: Math.round(Date.now() / 1000),
+    committer: "",
+    body: branch.current ? `Working tree on ${branch.current}` : "Working tree",
+    fileChanges
+  };
+}
+
 export async function commitDetails(
   git: SimpleGit,
   input: CommitDetailsInput
 ): Promise<QueryResult<"commitDetails">> {
   try {
+    if (input.commitHash === "*") {
+      return { commitDetails: await workingTreeDetails(git) };
+    }
     const [details, nameStatusLines, numStatLines] = await Promise.all([
       fetchCommitInfo(git, input.commitHash, input.dateType),
       fetchNameStatus(git, input.commitHash),
