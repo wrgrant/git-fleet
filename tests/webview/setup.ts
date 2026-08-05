@@ -33,11 +33,16 @@ export function setupHtml(viewState: GG.GitGraphViewState) {
       </label>
       <div id="refreshBtn" class="roundedBtn">Refresh</div>
     </div>
-    <div id="content">
-      <div id="commitGraph"></div>
-      <div id="commitTable"></div>
-    </div>
-    <div id="footer"></div>
+      <div id="content">
+        <div id="commitGraph"></div>
+        <div id="commitTable"></div>
+      </div>
+      <aside id="worktreeRail" hidden>
+        <div id="worktreeHeader"></div>
+        <div id="worktreeList"></div>
+      </aside>
+      <svg id="worktreeConnectorOverlay"></svg>
+      <div id="footer"></div>
     <ul id="contextMenu"></ul>
     <div id="dialogBacking"></div>
     <div id="dialog"></div>

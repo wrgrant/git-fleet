@@ -2,73 +2,35 @@
 
 ## [Unreleased]
 
-## [0.5.0] - 2026-07-24
+## [0.1.0] - 2026-08-05
+
+The first Git Fleet release, forked from Neo Git Graph 0.5.0.
 
 ### Added
 
-- Git Graph button in the Source Control view title
-- Centralized logging with a dedicated "Git Graph" output channel
+- A dedicated Git Fleet Activity Bar pane for cross-repository navigation
+- Repository arrangements by recent activity, dirty-file count, or folder tree
+- A persistent hide-clean-repositories control
+- Configurable global repository search roots for projects outside the workspace
+- Nested repository discovery to a default depth of four folders
+- Clickable Uncommitted Changes details with file-level diffs
+- A right-side Git worktree rail with confirmed HEAD positions, dirty state, branch information, inferred bases, and offscreen continuation arrows
+- Manifest regression tests for valid VS Code view identifiers
 
 ### Changed
 
-- Optimize extension initialization logic
-- Replace the "Locate HEAD" button with a highlighted HEAD commit row in the graph
-- Status bar: add icons for the active and watching states
-- Simplify localization to use English-string keys extracted with @vscode/l10n-dev
+- Renamed the extension, commands, settings, views, logs, and diff scheme to Git Fleet
+- Moved cross-repository navigation out of the built-in Source Control pane
+- Kept the graph cell visible through row selection styling
+- Updated the product identity to `wgrant-dev.git-fleet`
 
-### Fixed
+### Security
 
-- Native browser context menu appearing over the graph in browser-based VS Code (vscode.dev / Codespaces)
-- Header layout quirks around the refresh button
+- Removed an inherited hard-coded GitLab token from avatar lookup requests
 
-## [0.4.0] - 2026-04-10
+## Neo Git Graph history
 
-### Added
+Git Fleet began from Neo Git Graph 0.5.0. Its earlier changelog remains available in the [upstream repository](https://github.com/asispts/neo-git-graph/blob/main/CHANGELOG.md).
 
-- Full internationalization (i18n) support with multiple languages
-- Language support: English (default), Simplified Chinese (简体中文), Traditional Chinese (繁體中文)
-
-### Fixed
-
-- Escape HTML in git output before rendering
-
-## [0.3.0] - 2026-03-26
-
-### Added
-
-- Introduce gitClient based on simple-git
-- Added a button to locate HEAD in the graph
-
-### Changed
-
-- Extract webview bridge
-- Extract webview lifecycle
-
-## [0.2.0] - 2026-03-17
-
-### Added
-
-- Add initial test suite and CI configuration
-
-### Fixed
-
-- Remove information message
-
-## [0.1.1] - 2026-02-23
-
-### Changed
-
-- Migrate build system to esbuild and upgrade dependencies
-- Add oxlint linter and oxfmt formatter
-
-## [0.1.0] - 2026-02-18
-
-Initial release
-
-[Unreleased]: https://github.com/asispts/neo-git-graph/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/asispts/neo-git-graph/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/asispts/neo-git-graph/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/asispts/neo-git-graph/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/asispts/neo-git-graph/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/asispts/neo-git-graph/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/asispts/neo-git-graph/releases/tag/v0.1.0
+[Unreleased]: https://github.com/wrgrant/git-fleet/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/wrgrant/git-fleet/releases/tag/v0.1.0

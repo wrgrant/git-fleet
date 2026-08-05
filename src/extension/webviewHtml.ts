@@ -71,6 +71,11 @@ export function buildWebviewHtml(opts: {
 			<div id="commitGraph"></div>
 			<div id="commitTable"></div>
 		</div>
+		<aside id="worktreeRail" aria-label="${vscode.l10n.t("Worktrees")}" hidden>
+			<div id="worktreeHeader"></div>
+			<div id="worktreeList"></div>
+		</aside>
+		<svg id="worktreeConnectorOverlay" aria-hidden="true"></svg>
 		<div id="footer"></div>
 		<ul id="contextMenu"></ul>
 		<div id="dialogBacking"></div>
@@ -82,7 +87,7 @@ export function buildWebviewHtml(opts: {
 		</body>`;
   } else {
     body = `<body class="unableToLoad" style="${colorVars}">
-		<h2>${vscode.l10n.t("Unable to load Git Graph")}</h2>
+		<h2>${vscode.l10n.t("Unable to load Git Fleet")}</h2>
 		<p>${vscode.l10n.t("Either the current workspace does not contain a Git repository, or the Git repository is not configured correctly.")}</p>
 		<p>${vscode.l10n.t('If you are using a portable Git installation, make sure you have set the Visual Studio Code Setting "git.path" to the path of your portable installation (e.g. "C:\\Program Files\\Git\\bin\\git.exe" on Windows).')}</p>
 		</body>`;

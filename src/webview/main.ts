@@ -4,6 +4,7 @@ import type {
   GitCommitNode,
   GitFileChange,
   GitFileChangeType,
+  GitWorktree,
   GitResetMode
 } from "@/backend/types";
 
@@ -26,6 +27,9 @@ class GitGraphView {
   private avatars: AvatarImageCollection = {};
   private currentBranch: string | null = null;
   private currentRepo!: string;
+  private worktrees: GitWorktree[] = [];
+  private worktreeBaselineRef: string | null = null;
+  private activeWorktree: { worktree: GitWorktree; item: HTMLElement } | null = null;
 
   private graph: Graph;
   private config: Config;
@@ -58,6 +62,8 @@ class GitGraphView {
     this.footerElem = document.getElementById("footer")!;
     this.repoDropdown = new Dropdown("repoSelect", true, l10n.repo, (value) => {
       this.currentRepo = value;
+      this.worktrees = [];
+      this.worktreeBaselineRef = null;
       this.maxCommits = this.config.initialLoadCommits;
       this.expandedCommit = null;
       this.currentBranch = null;
@@ -99,6 +105,8 @@ class GitGraphView {
         this.maxCommits = prevState.maxCommits;
         this.expandedCommit = prevState.expandedCommit;
         this.avatars = prevState.avatars;
+        this.worktrees = prevState.worktrees ?? [];
+        this.worktreeBaselineRef = prevState.worktreeBaselineRef ?? null;
         this.loadBranches(prevState.gitBranches, prevState.gitBranchHead, true, true);
         this.loadCommits(
           prevState.commits,
@@ -110,6 +118,13 @@ class GitGraphView {
     }
     this.loadRepos(this.gitRepos, lastActiveRepo);
     this.requestLoadBranchesAndCommits(false);
+  }
+
+  public loadWorktrees(worktrees: GitWorktree[], baselineRef: string | null) {
+    this.worktrees = worktrees;
+    this.worktreeBaselineRef = baselineRef;
+    this.saveState();
+    this.renderWorktrees();
   }
 
   /* Loading Data */
@@ -142,6 +157,21 @@ class GitGraphView {
     if (changedRepo) {
       this.refresh(true);
     }
+  }
+
+  public selectRepo(repo: string) {
+    if (repo === this.currentRepo || typeof this.gitRepos[repo] === "undefined") {
+      return;
+    }
+    this.currentRepo = repo;
+    this.worktrees = [];
+    this.worktreeBaselineRef = null;
+    this.maxCommits = this.config.initialLoadCommits;
+    this.expandedCommit = null;
+    this.currentBranch = null;
+    this.saveState();
+    this.loadRepos(this.gitRepos, repo);
+    this.refresh(true);
   }
 
   public loadBranches(
@@ -320,6 +350,7 @@ class GitGraphView {
       return;
     }
     this.loadCommitsCallback = loadedCallback;
+    sendMessage({ command: "loadWorktrees", repo: this.currentRepo! });
     sendMessage({
       command: "loadCommits",
       repo: this.currentRepo!,
@@ -368,7 +399,9 @@ class GitGraphView {
       moreCommitsAvailable: this.moreCommitsAvailable,
       maxCommits: this.maxCommits,
       showRemoteBranches: this.showRemoteBranches,
-      expandedCommit: this.expandedCommit
+      expandedCommit: this.expandedCommit,
+      worktrees: this.worktrees,
+      worktreeBaselineRef: this.worktreeBaselineRef
     });
   }
 
@@ -376,6 +409,7 @@ class GitGraphView {
   private render() {
     this.renderTable();
     this.renderGraph();
+    this.renderWorktrees();
   }
   private renderGraph() {
     let colHeadersElem = document.getElementById("tableColHeaders");
@@ -398,6 +432,7 @@ class GitGraphView {
         : this.config.grid.y;
     this.config.grid.offsetY = headerHeight + this.config.grid.y / 2;
     this.graph.render(this.expandedCommit);
+    this.redrawActiveWorktree();
   }
   private renderTable() {
     let html = `<tr id="tableColHeaders"><th id="tableHeaderGraphCol" class="tableColHeader">${l10n.graph}</th><th class="tableColHeader">${l10n.description}</th><th class="tableColHeader">${l10n.date}</th><th class="tableColHeader">${l10n.author}</th><th class="tableColHeader">${l10n.commit}</th></tr>`,
@@ -429,13 +464,12 @@ class GitGraphView {
       }
       html +=
         "<tr " +
-        (this.commits[i].hash !== "*"
-          ? 'class="commit' +
-            (this.commits[i].hash === this.commitHead ? " head" : "") +
-            '" data-hash="' +
-            this.commits[i].hash +
-            '"'
-          : 'class="unsavedChanges"') +
+        'class="commit' +
+        (this.commits[i].hash === "*" ? " unsavedChanges" : "") +
+        (this.commits[i].hash === this.commitHead ? " head" : "") +
+        '" data-hash="' +
+        this.commits[i].hash +
+        '"' +
         ' data-id="' +
         i +
         '" data-color="' +
@@ -512,6 +546,10 @@ class GitGraphView {
       e.stopPropagation();
       let sourceElem = <HTMLElement>(<Element>e.target).closest(".commit")!;
       let hash = sourceElem.dataset.hash!;
+      if (hash === "*") {
+        e.preventDefault();
+        return;
+      }
       showContextMenu(
         <MouseEvent>e,
         [
@@ -1099,7 +1137,194 @@ class GitGraphView {
         active = window.scrollY > 0;
         this.scrollShadowElem.className = active ? "active" : "";
       }
+      this.redrawActiveWorktree();
     });
+  }
+
+  private renderWorktrees() {
+    const rail = document.getElementById("worktreeRail")!;
+    const header = document.getElementById("worktreeHeader")!;
+    const list = document.getElementById("worktreeList")!;
+    this.clearWorktreeConnections();
+    if (this.worktrees.length === 0) {
+      rail.hidden = true;
+      document.body.classList.remove("worktreesVisible");
+      header.innerHTML = "";
+      list.innerHTML = "";
+      return;
+    }
+
+    rail.hidden = false;
+    document.body.classList.add("worktreesVisible");
+    header.innerHTML =
+      '<div class="worktreeTitle"><span>' +
+      escapeHtml(l10n.worktrees) +
+      "</span><span>" +
+      this.worktrees.length +
+      '</span></div><div class="worktreeHelp">' +
+      escapeHtml(l10n.worktreeHelp) +
+      "</div>";
+    list.innerHTML = "";
+
+    for (const worktree of this.worktrees) {
+      const item = document.createElement("button");
+      item.className = "worktreeItem";
+      const dirty = worktree.dirtyCount !== null && worktree.dirtyCount > 0;
+      const statusClass = worktree.prunable !== null ? "prunable" : dirty ? "dirty" : "";
+      const statusText =
+        worktree.prunable !== null
+          ? l10n.worktreePrunable
+          : dirty
+            ? l10n.worktreeChanged.replace("{0}", String(worktree.dirtyCount))
+            : l10n.worktreeClean;
+      const divergence =
+        worktree.ahead === null || worktree.behind === null
+          ? l10n.worktreeOutsideHistory
+          : l10n.worktreeDivergence
+              .replace("{0}", String(worktree.ahead))
+              .replace("{1}", String(worktree.behind));
+      const pathParts = worktree.path.replace(/\\/g, "/").split("/");
+      const shortPath = pathParts[pathParts.length - 1] || worktree.path;
+      item.innerHTML =
+        '<span class="worktreeTopline"><span class="worktreeStatus ' +
+        statusClass +
+        '"></span><span class="worktreeBranch">' +
+        escapeHtml(worktree.branch) +
+        "</span>" +
+        (worktree.current
+          ? '<span class="worktreeCurrent">' + escapeHtml(l10n.worktreeCurrent) + "</span>"
+          : "") +
+        '<span class="worktreeSha">' +
+        escapeHtml(worktree.head.substring(0, 8)) +
+        '</span></span><span class="worktreePath" title="' +
+        escapeHtml(worktree.path) +
+        '">' +
+        escapeHtml(shortPath) +
+        '</span><span class="worktreeMeta"><span class="' +
+        (dirty ? "dirty" : "") +
+        '">' +
+        escapeHtml(statusText) +
+        "</span><span>" +
+        escapeHtml(divergence) +
+        "</span>" +
+        (worktree.locked !== null ? "<span>" + escapeHtml(l10n.worktreeLocked) + "</span>" : "") +
+        (worktree.baseSha !== null
+          ? '<span class="base">' +
+            escapeHtml(l10n.worktreeBase.replace("{0}", worktree.baseSha.substring(0, 8))) +
+            "</span>"
+          : "") +
+        "</span>";
+      item.addEventListener("mouseenter", () => this.drawWorktreeConnections(worktree, item));
+      item.addEventListener("focus", () => this.drawWorktreeConnections(worktree, item));
+      item.addEventListener("mouseleave", () => this.clearWorktreeConnections());
+      item.addEventListener("blur", () => this.clearWorktreeConnections());
+      item.addEventListener("click", () => {
+        const row = this.findCommitRow(worktree.head);
+        row?.scrollIntoView({ block: "center", behavior: "smooth" });
+        window.setTimeout(() => this.drawWorktreeConnections(worktree, item), 280);
+      });
+      list.appendChild(item);
+    }
+  }
+
+  private findCommitRow(hash: string): HTMLElement | null {
+    const rows = this.tableElem.getElementsByTagName("tr");
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].dataset.hash === hash) {
+        return rows[i];
+      }
+    }
+    return null;
+  }
+
+  private clearWorktreeConnections() {
+    this.activeWorktree?.item.classList.remove("active");
+    this.activeWorktree = null;
+    document.getElementById("worktreeConnectorOverlay")?.replaceChildren();
+    this.tableElem
+      .querySelectorAll(".worktreeHead,.worktreeBase")
+      .forEach((row) => row.classList.remove("worktreeHead", "worktreeBase"));
+  }
+
+  private redrawActiveWorktree() {
+    if (this.activeWorktree !== null) {
+      this.drawWorktreeConnections(this.activeWorktree.worktree, this.activeWorktree.item);
+    }
+  }
+
+  private drawWorktreeConnections(worktree: GitWorktree, item: HTMLElement) {
+    const overlay = document.getElementById("worktreeConnectorOverlay")!;
+    this.tableElem
+      .querySelectorAll(".worktreeHead,.worktreeBase")
+      .forEach((row) => row.classList.remove("worktreeHead", "worktreeBase"));
+    this.activeWorktree?.item.classList.remove("active");
+    this.activeWorktree = { worktree, item };
+    item.classList.add("active");
+
+    const sourceRect = item.getBoundingClientRect();
+    const source = { x: sourceRect.left - 4, y: sourceRect.top + sourceRect.height / 2 };
+    const head = this.worktreeRoute(worktree.head);
+    const base =
+      worktree.baseSha !== null && worktree.baseSha !== worktree.head
+        ? this.worktreeRoute(worktree.baseSha)
+        : null;
+    const paths: string[] = [];
+    if (base !== null) {
+      paths.push(
+        this.worktreeConnectorPath({ x: source.x, y: source.y + 3 }, base.point, "baseLink")
+      );
+      paths.push(this.worktreeEndpoint(base, "base"));
+      this.findCommitRow(worktree.baseSha!)?.classList.add("worktreeBase");
+    }
+    paths.push(
+      this.worktreeConnectorPath({ x: source.x, y: source.y - 3 }, head.point, "headLink")
+    );
+    paths.push(this.worktreeEndpoint(head, "head"));
+    this.findCommitRow(worktree.head)?.classList.add("worktreeHead");
+    overlay.innerHTML = paths.join("");
+  }
+
+  private worktreeRoute(hash: string): { point: Pixel; edge: "up" | "down" | null } {
+    const graphRect = document.getElementById("commitGraph")!.getBoundingClientRect();
+    const headerRect = document.getElementById("tableColHeaders")?.getBoundingClientRect();
+    const controlsRect = document.getElementById("controls")!.getBoundingClientRect();
+    const top = Math.max(controlsRect.bottom, headerRect?.bottom ?? controlsRect.bottom) + 1;
+    const bottom = window.innerHeight - 8;
+    const index = this.commitLookup[hash];
+    const vertex =
+      typeof index === "number" ? this.graph.getVertexPoint(index, this.expandedCommit) : null;
+    if (vertex === null) {
+      return { point: { x: graphRect.left + this.config.grid.offsetX, y: bottom }, edge: "down" };
+    }
+    const actual = { x: graphRect.left + vertex.x, y: graphRect.top + vertex.y };
+    if (actual.y < top) {
+      return { point: { x: actual.x, y: top }, edge: "up" };
+    }
+    if (actual.y > bottom) {
+      return { point: { x: actual.x, y: bottom }, edge: "down" };
+    }
+    return { point: actual, edge: null };
+  }
+
+  private worktreeConnectorPath(source: Pixel, target: Pixel, className: string) {
+    const direction = target.x >= source.x ? 1 : -1;
+    const bend = Math.max(52, Math.min(180, Math.abs(source.x - target.x) * 0.33));
+    return `<path class="${className}" d="M ${source.x} ${source.y} C ${source.x + direction * bend} ${source.y}, ${target.x - direction * bend} ${target.y}, ${target.x} ${target.y}"/>`;
+  }
+
+  private worktreeEndpoint(
+    route: { point: Pixel; edge: "up" | "down" | null },
+    type: "head" | "base"
+  ) {
+    if (route.edge === null) {
+      return `<circle class="${type}Dot" cx="${route.point.x}" cy="${route.point.y}" r="${type === "head" ? 6 : 5}"/>`;
+    }
+    const { x, y } = route.point;
+    const arrow =
+      route.edge === "up"
+        ? `M ${x - 5} ${y + 7} L ${x} ${y} L ${x + 5} ${y + 7} Z`
+        : `M ${x - 5} ${y - 7} L ${x} ${y} L ${x + 5} ${y - 7} Z`;
+    return `<path class="${type}Arrow" d="${arrow}"/>`;
   }
 
   /* Commit Details */
@@ -1153,32 +1378,42 @@ class GitGraphView {
 
     let newElem = document.createElement("tr"),
       html = '<td></td><td colspan="4"><div id="commitDetailsSummary">';
-    html +=
-      '<span class="commitDetailsSummaryTop' +
-      (typeof this.avatars[commitDetails.email] === "string" ? " withAvatar" : "") +
-      '"><span class="commitDetailsSummaryTopRow"><span class="commitDetailsSummaryKeyValues">';
-    html += detailRowHtml(l10n.detailCommit, escapeHtml(commitDetails.hash)) + "<br>";
-    html += detailRowHtml(l10n.detailParents, commitDetails.parents.join(", ")) + "<br>";
-    html +=
-      detailRowHtml(
-        l10n.detailAuthor,
-        escapeHtml(commitDetails.author) +
-          ' &lt;<a href="mailto:' +
-          encodeURIComponent(commitDetails.email) +
-          '">' +
-          escapeHtml(commitDetails.email) +
-          "</a>&gt;"
-      ) + "<br>";
-    html += detailRowHtml(l10n.detailDate, new Date(commitDetails.date * 1000).toString()) + "<br>";
-    html += detailRowHtml(l10n.detailCommitter, escapeHtml(commitDetails.committer)) + "</span>";
-    if (typeof this.avatars[commitDetails.email] === "string") {
+    if (commitDetails.hash === "*") {
       html +=
-        '<span class="commitDetailsSummaryAvatar"><img src="' +
-        this.avatars[commitDetails.email] +
-        '"></span>';
+        "<h3>" +
+        escapeHtml(l10n.workingTree) +
+        "</h3><p>" +
+        escapeHtml(l10n.workingTreeHelp) +
+        "</p></div>";
+    } else {
+      html +=
+        '<span class="commitDetailsSummaryTop' +
+        (typeof this.avatars[commitDetails.email] === "string" ? " withAvatar" : "") +
+        '"><span class="commitDetailsSummaryTopRow"><span class="commitDetailsSummaryKeyValues">';
+      html += detailRowHtml(l10n.detailCommit, escapeHtml(commitDetails.hash)) + "<br>";
+      html += detailRowHtml(l10n.detailParents, commitDetails.parents.join(", ")) + "<br>";
+      html +=
+        detailRowHtml(
+          l10n.detailAuthor,
+          escapeHtml(commitDetails.author) +
+            ' &lt;<a href="mailto:' +
+            encodeURIComponent(commitDetails.email) +
+            '">' +
+            escapeHtml(commitDetails.email) +
+            "</a>&gt;"
+        ) + "<br>";
+      html +=
+        detailRowHtml(l10n.detailDate, new Date(commitDetails.date * 1000).toString()) + "<br>";
+      html += detailRowHtml(l10n.detailCommitter, escapeHtml(commitDetails.committer)) + "</span>";
+      if (typeof this.avatars[commitDetails.email] === "string") {
+        html +=
+          '<span class="commitDetailsSummaryAvatar"><img src="' +
+          this.avatars[commitDetails.email] +
+          '"></span>';
+      }
+      html += "</span></span><br><br>";
+      html += escapeHtml(commitDetails.body).replace(/\n/g, "<br>") + "</div>";
     }
-    html += "</span></span><br><br>";
-    html += escapeHtml(commitDetails.body).replace(/\n/g, "<br>") + "</div>";
     html +=
       '<div id="commitDetailsFiles">' +
       generateGitFileTreeHtml(fileTree, commitDetails.fileChanges) +
@@ -1187,6 +1422,9 @@ class GitGraphView {
     html += "</td>";
 
     newElem.id = "commitDetails";
+    if (commitDetails.hash === "*") {
+      newElem.className = "workingTreeDetails";
+    }
     newElem.innerHTML = html;
     insertAfter(newElem, this.expandedCommit.srcElem);
 
@@ -1325,8 +1563,14 @@ window.addEventListener("message", (event) => {
     case "loadCommits":
       gitGraph.loadCommits(msg.commits, msg.head, msg.moreCommitsAvailable, msg.hard);
       break;
+    case "loadWorktrees":
+      gitGraph.loadWorktrees(msg.worktrees, msg.baselineRef);
+      break;
     case "loadRepos":
       gitGraph.loadRepos(msg.repos, msg.lastActiveRepo);
+      break;
+    case "selectRepo":
+      gitGraph.selectRepo(msg.repo);
       break;
     case "mergeBranch":
       refreshGraphOrDisplayError(msg.status, l10n.unableToMergeBranch);

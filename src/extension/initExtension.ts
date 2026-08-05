@@ -12,6 +12,8 @@ import { EXTENSION_NAME } from "@/extension/constant/const";
 import { createMaxDepthTracker } from "@/extension/maxDepthTracker";
 import { registerMessageHandlers } from "@/extension/messageHandler";
 import { createRepoManager, RepoManager } from "@/extension/repoManager";
+import { registerRepositoryNavigator } from "@/extension/repoNavigator";
+import { getRepositorySearchRoots } from "@/extension/repositorySearchRoots";
 import { logger } from "@/extension/utils/logger";
 import { WebviewBridge, webviewBridgeFactory } from "@/extension/webviewBridge";
 import { createWebviewPanel, WebviewPanel } from "@/extension/webviewPanel";
@@ -29,59 +31,76 @@ function registerViewCommand(
   gitClient: GitClient
 ) {
   let currentPanel: WebviewPanel | undefined;
-  ctx.subscriptions.push(
-    vscode.commands.registerCommand("neo-git-graph.view", () => {
-      if (currentPanel) {
-        currentPanel.reveal(vscode.window.activeTextEditor?.viewColumn);
-        return;
+  let selectRepo: ((repo: string) => void) | undefined;
+
+  function openGraph(repo?: string, column?: vscode.ViewColumn) {
+    if (currentPanel) {
+      if (repo) {
+        selectRepo?.(repo);
+        currentPanel.selectRepo(repo);
       }
+      currentPanel.reveal(column);
+      return;
+    }
 
-      const vsPanel = vscode.window.createWebviewPanel(
-        "neo-git-graph",
-        EXTENSION_NAME,
-        vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One,
-        {
-          enableScripts: true,
-          localResourceRoots: [
-            buildExtensionUri(ctx.extensionPath, "media"),
-            buildExtensionUri(ctx.extensionPath, "out")
-          ]
-        }
-      );
+    const vsPanel = vscode.window.createWebviewPanel(
+      "git-fleet",
+      EXTENSION_NAME,
+      column ?? vscode.window.activeTextEditor?.viewColumn ?? vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [
+          buildExtensionUri(ctx.extensionPath, "media"),
+          buildExtensionUri(ctx.extensionPath, "out")
+        ]
+      }
+    );
 
-      let bridge!: WebviewBridge;
-      const repoFileWatcher = new RepoFileWatcher(() => {
-        if (vsPanel.visible) {
-          bridge.post({ command: "refresh" });
-        }
-      });
-      bridge = webviewBridgeFactory(vsPanel.webview, repoFileWatcher);
-      avatarManager.registerBridge(bridge.post.bind(bridge));
+    let bridge!: WebviewBridge;
+    const repoFileWatcher = new RepoFileWatcher(() => {
+      if (vsPanel.visible) {
+        bridge.post({ command: "refresh" });
+      }
+    });
+    bridge = webviewBridgeFactory(vsPanel.webview, repoFileWatcher);
+    avatarManager.registerBridge(bridge.post.bind(bridge));
 
-      const { onPanelShown } = registerMessageHandlers(bridge, {
-        config,
-        gitClient,
-        repoManager,
-        extensionState,
-        avatarManager,
-        repoFileWatcher
-      });
+    const handlers = registerMessageHandlers(bridge, {
+      config,
+      gitClient,
+      repoManager,
+      extensionState,
+      avatarManager,
+      repoFileWatcher
+    });
+    selectRepo = handlers.selectRepo;
+    if (repo) {
+      selectRepo(repo);
+    }
 
-      currentPanel = createWebviewPanel({
-        panel: vsPanel,
-        bridge,
-        config,
-        repoFileWatcher,
-        extensionPath: ctx.extensionPath,
-        extensionState,
-        avatarManager,
-        repoManager,
-        onDispose: () => {
-          currentPanel = undefined;
-        },
-        onPanelShown
-      });
-    })
+    currentPanel = createWebviewPanel({
+      panel: vsPanel,
+      bridge,
+      config,
+      repoFileWatcher,
+      extensionPath: ctx.extensionPath,
+      extensionState,
+      avatarManager,
+      repoManager,
+      onDispose: () => {
+        currentPanel = undefined;
+      },
+      onPanelShown: handlers.onPanelShown
+    });
+  }
+
+  ctx.subscriptions.push(
+    vscode.commands.registerCommand("git-fleet.view", () =>
+      openGraph(undefined, vscode.window.activeTextEditor?.viewColumn)
+    ),
+    vscode.commands.registerCommand("git-fleet.openRepositoryGraph", (repo: string) =>
+      openGraph(repo, currentPanel ? undefined : vscode.ViewColumn.Beside)
+    )
   );
 }
 
@@ -97,7 +116,7 @@ export function initExtension(
     const avatarManager = new AvatarManager(config.gitPath, extensionState);
 
     ctx.subscriptions.push(
-      vscode.commands.registerCommand("neo-git-graph.clearAvatarCache", () => {
+      vscode.commands.registerCommand("git-fleet.clearAvatarCache", () => {
         avatarManager.clearCache();
       })
     );
@@ -114,7 +133,17 @@ export function initExtension(
     const repoManager = createRepoManager(extensionState, statusBarItem, config);
     repoManager.setRepos(repos);
     repoManager.sendRepos();
+    const rescanRepositories = async () => {
+      const repoDirs = await findGitRepos(
+        getRepositorySearchRoots(),
+        config.gitPath(),
+        config.maxDepthOfRepoSearch()
+      );
+      repoManager.setRepos(repoDirs);
+      repoManager.sendRepos();
+    };
     registerViewCommand(ctx, repoManager, extensionState, avatarManager, gitClient);
+    registerRepositoryNavigator(ctx, repoManager, extensionState, rescanRepositories);
 
     const gitWatcher = vscode.workspace.createFileSystemWatcher("**/.git");
     ctx.subscriptions.push(
@@ -131,49 +160,17 @@ export function initExtension(
           repoManager.sendRepos();
         }
       }),
-      vscode.workspace.onDidChangeWorkspaceFolders(async (e) => {
-        if (e.added.length > 0) {
-          const paths = e.added.map((f) => f.uri.fsPath);
-          const repoDirs = await findGitRepos(
-            paths,
-            config.gitPath(),
-            config.maxDepthOfRepoSearch()
-          );
-          for (const repo of repoDirs) {
-            repoManager.addRepo(repo);
-          }
-          if (repoDirs.length > 0) {
-            repoManager.sendRepos();
-          }
-        }
-        if (e.removed.length > 0) {
-          let changes = false;
-          for (const folder of e.removed) {
-            if (repoManager.removeReposWithinFolder(folder.uri.fsPath)) {
-              changes = true;
-            }
-          }
-          if (changes) {
-            repoManager.sendRepos();
-          }
-        }
-      }),
+      vscode.workspace.onDidChangeWorkspaceFolders(() => void rescanRepositories()),
       vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration("neo-git-graph.showStatusBarItem")) {
+        if (e.affectsConfiguration("git-fleet.showStatusBarItem")) {
           statusBarItem.refresh();
         } else if (e.affectsConfiguration("git.path")) {
           gitClient.setGitPath(config.gitPath());
-        } else if (e.affectsConfiguration("neo-git-graph.maxDepthOfRepoSearch")) {
+        } else if (e.affectsConfiguration("git-fleet.repositorySearchRoots")) {
+          void rescanRepositories();
+        } else if (e.affectsConfiguration("git-fleet.maxDepthOfRepoSearch")) {
           if (maxDepth.increased(config.maxDepthOfRepoSearch())) {
-            const paths = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath);
-            void findGitRepos(paths, config.gitPath(), config.maxDepthOfRepoSearch()).then(
-              (repoDirs) => {
-                if (repoDirs.length > 0) {
-                  repoManager.setRepos(repoDirs);
-                  repoManager.sendRepos();
-                }
-              }
-            );
+            void rescanRepositories();
           }
         }
       })

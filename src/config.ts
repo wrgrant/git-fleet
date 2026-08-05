@@ -6,7 +6,7 @@ import { DateFormat, GraphStyle } from "./types";
 type TabIconColourTheme = "colour" | "grey";
 
 function getConfig<T>(key: string, defaultValue: T): T {
-  return vscode.workspace.getConfiguration("neo-git-graph").get(key, defaultValue);
+  return vscode.workspace.getConfiguration("git-fleet").get(key, defaultValue);
 }
 
 export const config = {
@@ -31,7 +31,8 @@ export const config = {
   graphStyle: (): GraphStyle => getConfig("graphStyle", "rounded"),
   initialLoadCommits: (): number => getConfig("initialLoadCommits", 300),
   loadMoreCommits: (): number => getConfig("loadMoreCommits", 75),
-  maxDepthOfRepoSearch: (): number => getConfig("maxDepthOfRepoSearch", 0),
+  maxDepthOfRepoSearch: (): number => getConfig("maxDepthOfRepoSearch", 4),
+  repositorySearchRoots: (): string[] => getConfig("repositorySearchRoots", []),
   showCurrentBranchByDefault: (): boolean => getConfig("showCurrentBranchByDefault", false),
   showStatusBarItem: (): boolean => getConfig("showStatusBarItem", true),
   showUncommittedChanges: (): boolean => getConfig("showUncommittedChanges", true),

@@ -3,6 +3,19 @@ import * as fs from "node:fs/promises";
 import { isGitRepository } from "@/backend/utils/git";
 import { evalPromises } from "@/backend/utils/promise";
 
+const EXCLUDED_DIRECTORIES = new Set([
+  ".cache",
+  ".direnv",
+  ".next",
+  ".turbo",
+  ".venv",
+  "DerivedData",
+  "Pods",
+  "node_modules",
+  "target",
+  "venv"
+]);
+
 async function isDirectory(path: string): Promise<boolean> {
   return fs
     .stat(path)
@@ -36,7 +49,11 @@ export async function searchDirectoryForRepos(
 
   const dirs: string[] = [];
   for (let i = 0; i < dirContents.length; i++) {
-    if (dirContents[i] !== ".git" && (await isDirectory(directory + "/" + dirContents[i]))) {
+    if (
+      dirContents[i] !== ".git" &&
+      !EXCLUDED_DIRECTORIES.has(dirContents[i]) &&
+      (await isDirectory(directory + "/" + dirContents[i]))
+    ) {
       dirs.push(directory + "/" + dirContents[i]);
     }
   }

@@ -5,6 +5,7 @@ import { config } from "@/config";
 import { EXTENSION_NAME } from "@/extension/constant/const";
 import type { InitExtension } from "@/extension/initExtension";
 import { createMaxDepthTracker } from "@/extension/maxDepthTracker";
+import { getRepositorySearchRoots } from "@/extension/repositorySearchRoots";
 import { StatusBarItem } from "@/statusBarItem";
 
 type WatcherState = {
@@ -29,7 +30,7 @@ async function check(
   if (state.disposed) {
     return;
   }
-  const paths = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath);
+  const paths = getRepositorySearchRoots();
   const repoDirs = await findGitRepos(paths, config.gitPath(), config.maxDepthOfRepoSearch());
   if (repoDirs.length === 0 || state.disposed) {
     return;
@@ -53,13 +54,15 @@ export function watchForRepos(
       check(ctx, state, onReposFound, statusBarItem)
     ),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("neo-git-graph.maxDepthOfRepoSearch")) {
+      if (e.affectsConfiguration("git-fleet.repositorySearchRoots")) {
+        void check(ctx, state, onReposFound, statusBarItem);
+      } else if (e.affectsConfiguration("git-fleet.maxDepthOfRepoSearch")) {
         if (maxDepth.increased(config.maxDepthOfRepoSearch())) {
           void check(ctx, state, onReposFound, statusBarItem);
         }
       }
     }),
-    vscode.commands.registerCommand("neo-git-graph.view", async () => {
+    vscode.commands.registerCommand("git-fleet.view", async () => {
       await vscode.window.showErrorMessage(EXTENSION_NAME, {
         detail: vscode.l10n.t(
           "Either the current workspace does not contain a Git repository, or the Git repository is not configured correctly."
@@ -67,7 +70,7 @@ export function watchForRepos(
         modal: true
       });
     }),
-    vscode.commands.registerCommand("neo-git-graph.clearAvatarCache", async () => {
+    vscode.commands.registerCommand("git-fleet.clearAvatarCache", async () => {
       await vscode.window.showErrorMessage(EXTENSION_NAME, {
         detail: vscode.l10n.t(
           "Either the current workspace does not contain a Git repository, or the Git repository is not configured correctly."

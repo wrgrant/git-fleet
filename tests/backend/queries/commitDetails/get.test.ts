@@ -99,4 +99,26 @@ describe("commitDetails", () => {
     const result = await commitDetails(simpleGit(repo), { commitHash, dateType: "Author Date" });
     expect(result.commitDetails!.body).toContain("init");
   });
+
+  it("returns working-tree details for the uncommitted pseudo commit", async () => {
+    const dirtyRepo = makeRepo();
+    try {
+      fs.writeFileSync(path.join(dirtyRepo, "f"), "changed");
+      fs.writeFileSync(path.join(dirtyRepo, "new-file"), "new");
+      const result = await commitDetails(simpleGit(dirtyRepo), {
+        commitHash: "*",
+        dateType: "Author Date"
+      });
+      expect(result.commitDetails).toMatchObject({
+        hash: "*",
+        parents: [expect.any(String)],
+        fileChanges: expect.arrayContaining([
+          expect.objectContaining({ newFilePath: "f", type: "M" }),
+          expect.objectContaining({ newFilePath: "new-file", type: "A" })
+        ])
+      });
+    } finally {
+      fs.rmSync(dirtyRepo, { recursive: true, force: true });
+    }
+  });
 });

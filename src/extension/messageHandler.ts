@@ -1,3 +1,5 @@
+import * as path from "node:path";
+
 import * as vscode from "vscode";
 
 import { AvatarManager } from "@/avatarManager";
@@ -14,6 +16,7 @@ import { GitClient } from "@/backend/gitClient";
 import { commitDetails } from "@/backend/queries/commitDetails";
 import { loadBranches } from "@/backend/queries/loadBranches";
 import { loadCommits } from "@/backend/queries/loadCommits";
+import { loadWorktrees } from "@/backend/queries/loadWorktrees";
 import { GitFileChangeType } from "@/backend/types";
 import { abbrevCommit } from "@/backend/utils/string";
 import { Config } from "@/config";
@@ -33,6 +36,9 @@ function viewDiff(
   newFilePath: string,
   type: GitFileChangeType
 ): Promise<boolean> {
+  if (commitHash === "*") {
+    return viewWorkingTreeDiff(repo, oldFilePath, newFilePath, type);
+  }
   const abbrevHash = abbrevCommit(commitHash);
   const pathComponents = newFilePath.split("/");
   const title =
@@ -58,6 +64,25 @@ function viewDiff(
   });
 }
 
+function viewWorkingTreeDiff(
+  repo: string,
+  oldFilePath: string,
+  newFilePath: string,
+  type: GitFileChangeType
+): Promise<boolean> {
+  const fileName = path.basename(newFilePath);
+  const title = `${fileName} (${vscode.l10n.t("Working Tree")})`;
+  const empty = encodeDiffDocUri(repo, newFilePath, "__EMPTY__");
+  const left = type === "A" ? empty : encodeDiffDocUri(repo, oldFilePath, "HEAD");
+  const right = type === "D" ? empty : vscode.Uri.file(path.join(repo, newFilePath));
+  return Promise.resolve(
+    vscode.commands.executeCommand("vscode.diff", left, right, title, { preview: true })
+  ).then(
+    () => true,
+    () => false
+  );
+}
+
 export function registerMessageHandlers(
   bridge: WebviewBridge,
   deps: {
@@ -72,6 +97,16 @@ export function registerMessageHandlers(
   const { config, gitClient, repoManager, extensionState, avatarManager, repoFileWatcher } = deps;
 
   let currentRepo: string | null = null;
+
+  function selectRepo(repo: string) {
+    if (repo === currentRepo) {
+      return;
+    }
+    currentRepo = repo;
+    gitClient.setRepo(repo);
+    extensionState.setLastActiveRepo(repo);
+    repoFileWatcher.start(repo);
+  }
 
   function registerAction<T extends RequestMessage["command"]>(
     command: T,
@@ -132,6 +167,13 @@ export function registerMessageHandlers(
     });
   });
 
+  bridge.onMessage("loadWorktrees", async (msg) => {
+    bridge.post({
+      command: "loadWorktrees",
+      ...(await loadWorktrees(gitClient.getInstance(), msg.repo))
+    });
+  });
+
   bridge.onMessage("commitDetails", async (msg) => {
     bridge.post({
       command: "commitDetails",
@@ -145,13 +187,7 @@ export function registerMessageHandlers(
   // --- Infrastructure handlers ---
 
   bridge.onMessage("selectRepo", (msg) => {
-    if (msg.repo === currentRepo) {
-      return;
-    }
-    currentRepo = msg.repo;
-    gitClient.setRepo(msg.repo);
-    extensionState.setLastActiveRepo(msg.repo);
-    repoFileWatcher.start(msg.repo);
+    selectRepo(msg.repo);
   });
 
   bridge.onMessage("loadRepos", async (msg) => {
@@ -190,6 +226,7 @@ export function registerMessageHandlers(
   return {
     onPanelShown: () => {
       currentRepo = null;
-    }
+    },
+    selectRepo
   };
 }

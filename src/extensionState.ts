@@ -3,12 +3,14 @@ import * as fs from "node:fs";
 import { ExtensionContext, Memento } from "vscode";
 
 import { getPathFromStr } from "./backend/utils/path";
-import { Avatar, AvatarCache, GitRepoSet } from "./types";
+import { Avatar, AvatarCache, GitRepoSet, RepositoryNavigatorMode } from "./types";
 
 const AVATAR_STORAGE_FOLDER = "/avatars";
 const AVATAR_CACHE = "avatarCache";
 const LAST_ACTIVE_REPO = "lastActiveRepo";
 const REPO_STATES = "repoStates";
+const REPOSITORY_NAVIGATOR_MODE = "repositoryNavigatorMode";
+const HIDE_CLEAN_REPOSITORIES = "hideCleanRepositories";
 
 export class ExtensionState {
   private globalState: Memento;
@@ -50,6 +52,20 @@ export class ExtensionState {
   }
   public setLastActiveRepo(repo: string | null) {
     this.workspaceState.update(LAST_ACTIVE_REPO, repo);
+  }
+
+  /* Repository Navigator */
+  public getRepositoryNavigatorMode() {
+    return this.workspaceState.get<RepositoryNavigatorMode>(REPOSITORY_NAVIGATOR_MODE, "activity");
+  }
+  public setRepositoryNavigatorMode(mode: RepositoryNavigatorMode) {
+    this.workspaceState.update(REPOSITORY_NAVIGATOR_MODE, mode);
+  }
+  public getHideCleanRepositories() {
+    return this.workspaceState.get<boolean>(HIDE_CLEAN_REPOSITORIES, false);
+  }
+  public setHideCleanRepositories(hidden: boolean) {
+    this.workspaceState.update(HIDE_CLEAN_REPOSITORIES, hidden);
   }
 
   /* Avatars */

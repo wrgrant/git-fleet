@@ -4,7 +4,7 @@ import { GitInstance } from "./backend/gitClient";
 import { getPathFromStr } from "./backend/utils/path";
 
 export class DiffDocProvider implements vscode.TextDocumentContentProvider {
-  public static scheme = "neo-git-graph";
+  public static scheme = "git-fleet";
   private gitClient: GitInstance;
   private onDidChangeEventEmitter = new vscode.EventEmitter<vscode.Uri>();
   private docs = new Map<string, DiffDocument>();
@@ -34,6 +34,9 @@ export class DiffDocProvider implements vscode.TextDocumentContentProvider {
     }
 
     let request = decodeDiffDocUri(uri);
+    if (request.commit === "__EMPTY__") {
+      return "";
+    }
     return this.gitClient()
       .cwd(request.repo)
       .show([`${request.commit}:${request.filePath}`])

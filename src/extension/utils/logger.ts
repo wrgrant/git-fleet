@@ -4,14 +4,14 @@ let _channel: vscode.OutputChannel | undefined;
 
 export const logger = {
   init: (ctx: vscode.ExtensionContext) => {
-    _channel = vscode.window.createOutputChannel("Neo Git Graph");
+    _channel = vscode.window.createOutputChannel("Git Fleet");
     ctx.subscriptions.push(_channel);
   },
 
   log: (msg: string) => {
     if (!_channel) {
       // eslint-disable-next-line no-console
-      console.warn("[Neo Git Graph] log() called before initLogger()");
+      console.warn("[Git Fleet] log() called before initLogger()");
       return;
     }
 

@@ -5,12 +5,20 @@
 # Whitelist files
 !LICENSE
 !CHANGELOG.md
+!CONTRIBUTING.md
+!NOTICE.md
+!README.md
+!ROADMAP.md
+!SECURITY.md
+!docs/PUBLISHING.md
 !package.nls*.json
 !out/
 !media/
 !l10n/
 
 !resources/icon.png
+!resources/repository-navigator.svg
+!resources/screenshots/**
 !resources/webview-icon.svg
 !resources/webview-icon-dark.svg
 !resources/webview-icon-light.svg

@@ -442,6 +442,20 @@ export class Graph {
     return this.vertices[v].getColour() % this.config.graphColours.length;
   }
 
+  public getVertexPoint(v: number, expandedCommit: ExpandedCommit | null): Pixel | null {
+    if (v < 0 || v >= this.vertices.length) {
+      return null;
+    }
+    const point = this.vertices[v].getPoint();
+    return {
+      x: point.x * this.config.grid.x + this.config.grid.offsetX,
+      y:
+        point.y * this.config.grid.y +
+        this.config.grid.offsetY +
+        (expandedCommit !== null && v > expandedCommit.id ? this.config.grid.expandY : 0)
+    };
+  }
+
   public limitMaxWidth(maxWidth: number) {
     this.maxWidth = maxWidth;
     this.applyMaxWidth(this.getWidth());

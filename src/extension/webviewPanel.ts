@@ -39,6 +39,7 @@ export function createWebviewPanel(opts: {
   const disposables: vscode.Disposable[] = [];
   let isGraphViewLoaded = false;
   let isPanelVisible = true;
+  let deregisterRepoListener: (() => boolean) | undefined;
 
   panel.iconPath =
     config.tabIconColourTheme() === "colour"
@@ -65,7 +66,7 @@ export function createWebviewPanel(opts: {
     panel.dispose();
     avatarManager.deregisterBridge();
     repoFileWatcher.stop();
-    repoManager.deregisterViewCallback();
+    deregisterRepoListener?.();
     while (disposables.length) {
       const x = disposables.pop();
       if (x) {
@@ -92,24 +93,29 @@ export function createWebviewPanel(opts: {
     disposables
   );
 
-  repoManager.registerViewCallback((repos: GitRepoSet, numRepos: number) => {
-    if (!panel.visible) {
-      return;
+  deregisterRepoListener = repoManager.registerViewCallback(
+    (repos: GitRepoSet, numRepos: number) => {
+      if (!panel.visible) {
+        return;
+      }
+      if ((numRepos === 0 && isGraphViewLoaded) || (numRepos > 0 && !isGraphViewLoaded)) {
+        update();
+      } else {
+        bridge.post({
+          command: "loadRepos",
+          repos,
+          lastActiveRepo: extensionState.getLastActiveRepo()
+        });
+      }
     }
-    if ((numRepos === 0 && isGraphViewLoaded) || (numRepos > 0 && !isGraphViewLoaded)) {
-      update();
-    } else {
-      bridge.post({
-        command: "loadRepos",
-        repos,
-        lastActiveRepo: extensionState.getLastActiveRepo()
-      });
-    }
-  });
+  );
 
   return {
     reveal(column?: vscode.ViewColumn) {
       panel.reveal(column);
+    },
+    selectRepo(repo: string) {
+      bridge.post({ command: "selectRepo", repo });
     },
     dispose
   };

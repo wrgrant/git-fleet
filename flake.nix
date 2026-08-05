@@ -1,5 +1,5 @@
 {
-  description = "(neo) Git Graph — VS Code extension dev environment";
+  description = "Git Fleet — VS Code extension development environment";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 

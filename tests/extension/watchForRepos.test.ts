@@ -17,6 +17,7 @@ import { makeRepo } from "@tests/backend/helpers";
 const mock = vi.hoisted(() => {
   let folders: Array<{ uri: { fsPath: string } }> = [];
   let maxDepthVal = 0;
+  let repositorySearchRoots: string[] = [];
 
   let onCreateCb: (() => void) | undefined;
   let onFolderChangeCb: (() => void) | undefined;
@@ -31,8 +32,11 @@ const mock = vi.hoisted(() => {
       },
       getConfiguration: (section: string) => ({
         get: (key: string, def: unknown) => {
-          if (section === "neo-git-graph" && key === "maxDepthOfRepoSearch") {
+          if (section === "git-fleet" && key === "maxDepthOfRepoSearch") {
             return maxDepthVal;
+          }
+          if (section === "git-fleet" && key === "repositorySearchRoots") {
+            return repositorySearchRoots;
           }
           if (section === "git" && key === "path") {
             return null; // falls back to "git"
@@ -71,6 +75,9 @@ const mock = vi.hoisted(() => {
     },
     setMaxDepth(d: number) {
       maxDepthVal = d;
+    },
+    setRepositorySearchRoots(paths: string[]) {
+      repositorySearchRoots = paths;
     },
     fireCreate() {
       onCreateCb?.();
@@ -119,6 +126,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mock.setFolders([]);
   mock.setMaxDepth(0);
+  mock.setRepositorySearchRoots([]);
   onReposFound = vi.fn<InitExtension>();
   mockStatusBarItem = {
     refresh: vi.fn(),
@@ -182,7 +190,7 @@ describe("watchForRepos", () => {
       mock.setMaxDepth(0); // same as the tracker's current value → maxDepthIncreased() = false
       watcher = watchForRepos(ctx, onReposFound, mockStatusBarItem);
 
-      mock.fireConfigChange("neo-git-graph.maxDepthOfRepoSearch");
+      mock.fireConfigChange("git-fleet.maxDepthOfRepoSearch");
 
       expect(onReposFound).not.toHaveBeenCalled();
     });
@@ -192,7 +200,16 @@ describe("watchForRepos", () => {
       watcher = watchForRepos(ctx, onReposFound, mockStatusBarItem); // tracker initializes at 0
       mock.setMaxDepth(5); // increase after tracker is created
 
-      mock.fireConfigChange("neo-git-graph.maxDepthOfRepoSearch");
+      mock.fireConfigChange("git-fleet.maxDepthOfRepoSearch");
+
+      await vi.waitFor(() => expect(onReposFound).toHaveBeenCalledOnce());
+    });
+
+    it("calls onReposFound when a configured search root is added", async () => {
+      watcher = watchForRepos(ctx, onReposFound, mockStatusBarItem);
+      mock.setRepositorySearchRoots([repoDir]);
+
+      mock.fireConfigChange("git-fleet.repositorySearchRoots");
 
       await vi.waitFor(() => expect(onReposFound).toHaveBeenCalledOnce());
     });
@@ -201,7 +218,7 @@ describe("watchForRepos", () => {
       mock.setFolders([repoDir]);
       watcher = watchForRepos(ctx, onReposFound, mockStatusBarItem);
 
-      mock.fireConfigChange("neo-git-graph.graphStyle");
+      mock.fireConfigChange("git-fleet.graphStyle");
 
       expect(onReposFound).not.toHaveBeenCalled();
     });
@@ -224,10 +241,10 @@ describe("watchForRepos", () => {
   });
 
   describe("error commands (shown before any repo is found)", () => {
-    it("neo-git-graph.view shows a modal error", async () => {
+    it("git-fleet.view shows a modal error", async () => {
       watcher = watchForRepos(ctx, onReposFound, mockStatusBarItem);
 
-      await mock.invokeCommand("neo-git-graph.view");
+      await mock.invokeCommand("git-fleet.view");
 
       expect(mock.showErrorMessage).toHaveBeenCalledOnce();
       expect(mock.showErrorMessage).toHaveBeenCalledWith(
@@ -236,10 +253,10 @@ describe("watchForRepos", () => {
       );
     });
 
-    it("neo-git-graph.clearAvatarCache shows a modal error", async () => {
+    it("git-fleet.clearAvatarCache shows a modal error", async () => {
       watcher = watchForRepos(ctx, onReposFound, mockStatusBarItem);
 
-      await mock.invokeCommand("neo-git-graph.clearAvatarCache");
+      await mock.invokeCommand("git-fleet.clearAvatarCache");
 
       expect(mock.showErrorMessage).toHaveBeenCalledOnce();
       expect(mock.showErrorMessage).toHaveBeenCalledWith(

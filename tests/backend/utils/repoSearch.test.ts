@@ -19,6 +19,7 @@ let tmpDir: string;
 let repoA: string;
 let repoB: string;
 let nonRepoDir: string;
+let dependencyRepo: string;
 
 function initRepo(dir: string) {
   fs.mkdirSync(dir, { recursive: true });
@@ -41,9 +42,11 @@ beforeAll(() => {
   repoA = path.join(tmpDir, "repo-a");
   repoB = path.join(tmpDir, "nested", "repo-b");
   nonRepoDir = path.join(tmpDir, "not-a-repo");
+  dependencyRepo = path.join(tmpDir, "node_modules", "dependency-repo");
 
   initRepo(repoA);
   initRepo(repoB);
+  initRepo(dependencyRepo);
   fs.mkdirSync(nonRepoDir);
   fs.writeFileSync(path.join(nonRepoDir, "readme.txt"), "hello");
   fs.mkdirSync(path.join(tmpDir, "plain"));
@@ -103,5 +106,10 @@ describe("searchDirectoryForRepos", () => {
   it("does not return .git subdirectory as a repo", async () => {
     const result = await searchDirectoryForRepos(tmpDir, 2, "git", []);
     expect(result.every((r) => !r.includes("/.git"))).toBe(true);
+  });
+
+  it("skips dependency and build-cache directories", async () => {
+    const result = await searchDirectoryForRepos(tmpDir, 3, "git", []);
+    expect(result).not.toContain(dependencyRepo);
   });
 });

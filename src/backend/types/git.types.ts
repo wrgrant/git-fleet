@@ -49,6 +49,20 @@ export type GitCommitDetails = {
   fileChanges: GitFileChange[];
 };
 
+export type GitWorktree = {
+  path: string;
+  head: string;
+  branch: string;
+  current: boolean;
+  detached: boolean;
+  locked: string | null;
+  prunable: string | null;
+  dirtyCount: number | null;
+  baseSha: string | null;
+  ahead: number | null;
+  behind: number | null;
+};
+
 export type GitFileChangeType = "A" | "M" | "D" | "R";
 export type DateType = "Author Date" | "Commit Date";
 export type GitResetMode = "soft" | "mixed" | "hard";
