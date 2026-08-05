@@ -1,5 +1,13 @@
 # Content discovery queue
 
+## 2026-08-05 — Design native tree rows around information loss
+
+- Status: idea
+- Why it matters: VS Code extensions cannot set custom flex behavior or read the width of a native TreeView, so ordinary responsive CSS is not available.
+- Evidence: Git Fleet moves clean/dirty state into a native right-edge file decoration, caps it at two characters, and orders compact row metadata by importance: age, worktrees, then branch. Full values remain accessible by hover and screen reader.
+- Files changed: `src/extension/repositoryRowPresentation.ts`, `src/extension/repoNavigator.ts`
+- Suggested content angle: Responsive design in constrained extension APIs is less about pixels and more about deciding which information is allowed to disappear first.
+
 ## 2026-08-05 — Keep portable settings, add a humane management surface
 
 - Status: idea

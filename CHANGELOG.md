@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-08-05
+
+### Added
+
+- Persistent right-edge repository badges showing a clean checkmark or dirty-file count
+
+### Changed
+
+- Repository rows now prioritize update age, compact branch names, and worktree count when the navigator is narrow
+- Long repository and branch names use middle ellipses while their complete values remain in tooltips and accessibility labels
+- Repository tree item IDs are stable across dirty-state changes so selection survives refreshes
+
 ## [0.2.1] - 2026-08-05
 
 ### Added
@@ -60,7 +72,8 @@ The first Git Fleet release, forked from Neo Git Graph 0.5.0.
 
 Git Fleet began from Neo Git Graph 0.5.0. Its earlier changelog remains available in the [upstream repository](https://github.com/asispts/neo-git-graph/blob/main/CHANGELOG.md).
 
-[Unreleased]: https://github.com/wrgrant/git-fleet/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/wrgrant/git-fleet/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/wrgrant/git-fleet/releases/tag/v0.2.2
 [0.2.1]: https://github.com/wrgrant/git-fleet/releases/tag/v0.2.1
 [0.2.0]: https://github.com/wrgrant/git-fleet/releases/tag/v0.2.0
 [0.1.0]: https://github.com/wrgrant/git-fleet/releases/tag/v0.1.0

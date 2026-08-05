@@ -5,6 +5,14 @@ import * as vscode from "vscode";
 
 import { evalPromises } from "@/backend/utils/promise";
 import { config } from "@/config";
+import {
+  createRepositoryRowUri,
+  formatRepositoryAge,
+  formatRepositoryDescription,
+  formatRepositoryLabel,
+  RepositoryRowDecorationProvider,
+  RepositoryRowSummary
+} from "@/extension/repositoryRowPresentation";
 import { getRepositorySearchRoots } from "@/extension/repositorySearchRoots";
 import { ExtensionState } from "@/extensionState";
 import { RepositoryNavigatorLayout, RepositoryNavigatorSort } from "@/types";
@@ -15,14 +23,8 @@ const VIEW_ID = "git-fleet.repositoryNavigator";
 const HIDE_CLEAN_CONTEXT = "gitFleet.hideCleanRepositories";
 const TREE_LAYOUT_CONTEXT = "gitFleet.repositoryLayoutTree";
 
-export type RepositorySummary = {
-  branch: string;
-  dirtyCount: number;
-  latestCommitAt: number;
+export type RepositorySummary = RepositoryRowSummary & {
   latestCommitMessage: string;
-  name: string;
-  path: string;
-  worktreeCount: number;
 };
 
 export function filterRepositorySummaries(
@@ -74,25 +76,6 @@ export function repositoryPathFromCommandArgument(argument: unknown): string | u
     return (argument as RepositoryNode).summary.path;
   }
   return undefined;
-}
-
-function formatAge(timestamp: number): string {
-  if (timestamp === 0) {
-    return "no commits";
-  }
-  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
-  if (elapsedMinutes < 60) {
-    return elapsedMinutes <= 1 ? "now" : `${elapsedMinutes}m`;
-  }
-  const elapsedHours = Math.floor(elapsedMinutes / 60);
-  if (elapsedHours < 24) {
-    return `${elapsedHours}h`;
-  }
-  const elapsedDays = Math.floor(elapsedHours / 24);
-  if (elapsedDays < 30) {
-    return `${elapsedDays}d`;
-  }
-  return `${Math.floor(elapsedDays / 30)}mo`;
 }
 
 async function loadRepositorySummary(repoPath: string): Promise<RepositorySummary> {
@@ -286,10 +269,13 @@ class RepositoryNavigatorProvider implements vscode.TreeDataProvider<NavigatorNo
     }
 
     const { summary } = node;
-    const item = new vscode.TreeItem(summary.name, vscode.TreeItemCollapsibleState.None);
-    const state = summary.dirtyCount === 0 ? "clean" : `${summary.dirtyCount} dirty`;
-    const worktrees = summary.worktreeCount > 1 ? ` · ${summary.worktreeCount} worktrees` : "";
-    item.description = `${summary.branch} · ${state}${worktrees} · ${formatAge(summary.latestCommitAt)}`;
+    const item = new vscode.TreeItem(
+      formatRepositoryLabel(summary.name),
+      vscode.TreeItemCollapsibleState.None
+    );
+    item.id = `repository:${summary.path}`;
+    item.description = formatRepositoryDescription(summary);
+    item.resourceUri = createRepositoryRowUri(summary);
     item.iconPath =
       summary.dirtyCount === 0
         ? new vscode.ThemeIcon("repo")
@@ -308,9 +294,12 @@ class RepositoryNavigatorProvider implements vscode.TreeDataProvider<NavigatorNo
     tooltip.appendText(`${summary.path}\n`);
     tooltip.appendMarkdown(`\n${summary.latestCommitMessage}  \n`);
     tooltip.appendText(
-      `${summary.branch} · ${summary.dirtyCount} dirty files · ${summary.worktreeCount} worktrees`
+      `${summary.branch} · ${summary.dirtyCount === 0 ? "clean" : `${summary.dirtyCount} dirty files`} · ${summary.worktreeCount} worktrees · ${formatRepositoryAge(summary.latestCommitAt)}`
     );
     item.tooltip = tooltip;
+    item.accessibilityInformation = {
+      label: `${summary.name}, ${summary.dirtyCount === 0 ? "clean" : `${summary.dirtyCount} dirty files`}, branch ${summary.branch}, last update ${formatRepositoryAge(summary.latestCommitAt)}, ${summary.worktreeCount} worktrees`
+    };
     return item;
   }
 
@@ -418,6 +407,7 @@ export function registerRepositoryNavigator(
   const deregisterRepoListener = repoManager.registerViewCallback(() => provider.refresh());
   ctx.subscriptions.push(
     treeView,
+    vscode.window.registerFileDecorationProvider(new RepositoryRowDecorationProvider()),
     { dispose: deregisterRepoListener },
     vscode.commands.registerCommand("git-fleet.refreshRepositoryNavigator", async () => {
       await rescanRepositories();
